@@ -222,7 +222,7 @@ function calc(withTax) {
             // stepSize: 50000, // Schrittweite automatisch bestimmen lassen
             font:{
               // Schriftgröße für Y-Achse bleibt bei 12
-              size: 12
+              size: 16
             },
             // Formatierung der Y-Achsen-Beschriftung
             callback: v => v.toLocaleString('de-DE') // Einfachere Formatierung ohne Währungssymbol für mehr Platz
@@ -233,7 +233,7 @@ function calc(withTax) {
           ticks:{
             font:{
               // *** NEU: Schriftgröße für X-Achse weiter reduziert ***
-              size: 10
+              size: 14 
             },
             autoSkip: true, // Erlaubt Chart.js, Labels zu überspringen, wenn es zu eng wird
             maxRotation: 45, // Erlaubt das Drehen von Labels bis 45 Grad
