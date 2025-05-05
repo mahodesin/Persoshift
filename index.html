@@ -4,29 +4,25 @@
   <meta charset="utf-8">
   <title>PersoShift ETF-Rechner</title>
 
+  <!-- Schrift & Chart.js -->
   <link rel="preconnect" href="https://fonts.gstatic.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-+ <script>
-// 1. globale Defaults auf Inter & größere Größe
-+   Chart.defaults.font.family = 'Inter, sans-serif';
-+   Chart.defaults.font.size   = 16;
-+ </script>
+
   <style>
     body { font-family: 'Inter', sans-serif; text-align: center; padding: 2rem; max-width: 800px; margin: auto; }
-    h1 { font-size: 2.2rem; margin-bottom: 1rem; }
+    h1 { font-size: 2.4rem; margin-bottom: 1rem; }
     section { margin-bottom: 2rem; text-align: left; }
     label { display: block; margin: 0.5rem 0; font-size: 1rem; }
     input, button { font-family: inherit; font-size: 1rem; padding: 0.5rem; border: 1px solid #ccc; border-radius: 6px; width: 100%; box-sizing: border-box; }
     .row { display: flex; gap: 0.5rem; }
-    .btn { background: #5146ff; color: #fff; font-weight: 600; border: none; cursor: pointer; border-radius: 6px; margin: 0.5rem 0; padding: 0.75rem; /* Etwas mehr padding für bessere Klickbarkeit */ }
+    .btn { background: #5146ff; color: #fff; font-weight: 600; border: none; cursor: pointer; border-radius: 6px; margin: 0.5rem 0; padding: 0.75rem; }
     .btn:hover { background: #3e37d8; }
     #advToggle { cursor: pointer; margin: 1rem 0; font-weight: 600; color: #5146ff; }
-    #advanced { display: none; border: 1px dashed #bbb; padding: 1rem; border-radius: 6px; margin-top: 0.5rem; /* Kleiner Abstand zum Toggle */ }
-    #warn { color: #c00; font-size: 0.9rem; margin-bottom: 1rem; min-height: 1.2em; /* Platzhalter, damit Layout nicht springt */ }
-    /* Höhe mit !important wiederhergestellt, um Springen zu verhindern */
-    canvas { width:100% !important; max-width:760px; height:600px !important; margin:2rem auto; display:block; }
-    h3 { margin-top: 3rem; } /* Mehr Abstand nach oben für die Vergleichsüberschrift */
+    #advanced { display: none; border: 1px dashed #bbb; padding: 1rem; border-radius: 6px; margin-top: 0.5rem; }
+    #warn { color: #c00; font-size: 0.9rem; margin-bottom: 1rem; min-height: 1.2em; }
+    /* Fixiertes Canvas */
+    canvas { width: 100% !important; max-width: 760px; height: 600px !important; margin: 2rem auto; display: block; }
   </style>
 </head>
 <body>
@@ -65,13 +61,13 @@
 </section>
 
 <h2 id="headline"></h2>
-<canvas id="chart" width="800" height="600"></canvas>
+<canvas id="chart" width="760" height="600"></canvas>
 
 <h3>Vergleich (Endkapital)</h3>
-<canvas id="compare" width="800" height="600"></canvas>
+<canvas id="compare" width="760" height="600"></canvas>
 
 <script>
-const taxRate = 0.26375; // Kapitalertragsteuer 26,375 %
+const taxRate = 0.26375; // 26,375 %
 let chartMain, chartCompare;
 
 // Dropdown
@@ -86,7 +82,7 @@ advToggle.onclick = () => {
 // Formatierer
 const fmt = n => n.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0});
 
-// Elemente
+// Elemente referenzieren
 const rateEl = document.getElementById('rate');
 const yearsEl = document.getElementById('years');
 const intEl = document.getElementById('interest');
@@ -114,219 +110,96 @@ function calc(withTax) {
   const monthlyRate = annual / 12;
   let balance = start;
   let paidTotal = start;
-  let cumDep = [];
-  let cumGain = [];
-  let cumTax = [];
+  let totalGainGross = 0;
+  let totalTaxCalculated = 0;
 
-  let totalGainGross = 0; // Bruttogewinn über die Jahre
-  let totalTaxCalculated = 0; // Gesamte berechnete Steuer
+  const labels = [];
+  const cumDep = [];
+  const cumNet = [];
+  const cumTax = [];
 
   for (let y = 1; y <= years; y++) {
-    let yearStartBalance = balance;
-    let yearStartPaid = paidTotal;
-
-    // Einmalzahlung am Anfang des Jahres hinzufügen
     if (lumpsum > 0 && y === lumpYear) {
-         balance += lumpsum;
-         paidTotal += lumpsum;
-         yearStartBalance += lumpsum; // Korrektur: Muss auch hier berücksichtigt werden
-         yearStartPaid += lumpsum;    // Korrektur: Muss auch hier berücksichtigt werden
-     }
-
+      balance += lumpsum;
+      paidTotal += lumpsum;
+    }
     for (let m = 1; m <= 12; m++) {
-      // Zinsen auf den Vormonats-Saldo
       balance *= (1 + monthlyRate);
-      // Rate am Monatsende einzahlen (nachschüssig)
       balance += rate;
       paidTotal += rate;
     }
-
-    // Berechnung am Jahresende
-    const currentTotalGrossGain = balance - paidTotal; // Kumulierter Bruttogewinn bis Ende Jahr y
-    const yearGrossGain = currentTotalGrossGain - totalGainGross; // Bruttogewinn nur dieses Jahres
-
+    const grossGain = balance - paidTotal;
+    const yearGrossGain = grossGain - totalGainGross;
+    totalGainGross = grossGain;
     let yearTax = 0;
     if (withTax && yearGrossGain > 0) {
-       // Vereinfachte Annahme: Steuer wird jährlich auf den Jahresgewinn fällig
-       // In Realität komplexer (FIFO, Teilfreistellung etc.)
-       yearTax = yearGrossGain * taxRate;
-       // Stelle sicher, dass die Steuer nicht negativ wird (falls Rundungsfehler o.ä.)
-       yearTax = Math.max(0, yearTax);
-       // Netto-Wertzuwachs dieses Jahr berücksichtigen (optional, für Anzeige relevant)
-       // balance -= yearTax; // !! WICHTIG: Steuer mindert NICHT das Kapital im Rechner für die Folgejahre, nur den ausgewiesenen Gewinn!
-       totalTaxCalculated += yearTax; // Kumulierte Steuer aufaddieren
+      yearTax = yearGrossGain * taxRate;
+      totalTaxCalculated += yearTax;
     }
-
-    const currentTotalNetGain = currentTotalGrossGain - totalTaxCalculated; // Kumulierter Nettogewinn
-
+    labels.push('Jahr ' + y);
     cumDep.push(paidTotal);
-    // Wir zeigen den Nettogewinn im Chart an
-    cumGain.push(Math.max(0, currentTotalNetGain)); // Sicherstellen, dass Gewinn nicht negativ angezeigt wird
-    cumTax.push(totalTaxCalculated);
-
-    // Bruttogewinn für nächstes Jahr merken
-    totalGainGross = currentTotalGrossGain;
+    cumNet.push(grossGain - (withTax ? totalTaxCalculated : 0));
+    cumTax.push(withTax ? totalTaxCalculated : 0);
   }
 
-  const endCap = balance; // Endkapital vor finaler Steuerbetrachtung (falls Verkauf am Ende)
-  const finalTotalGrossGain = endCap - paidTotal;
-  const finalTotalTax = withTax ? Math.max(0, finalTotalGrossGain) * taxRate : 0;
-  const finalNetGain = finalTotalGrossGain - finalTotalTax;
-  const endCapNet = paidTotal + finalNetGain;
+  const endCap = balance;
+  const netEnd = withTax ? paidTotal + (totalGainGross - totalTaxCalculated) : endCap;
+  const profit = (withTax ? totalGainGross - totalTaxCalculated : totalGainGross);
 
-  // Anzeige im Headline: Endkapital (Netto falls Steuer gewählt), Einzahlungen, Nettogewinn
-  headlineEl.textContent = `Endkapital: ${fmt(withTax ? endCapNet : endCap)}   Einzahlungen: ${fmt(paidTotal)}   Gewinn${withTax ? ' (Netto)' : ''}: ${fmt(withTax ? finalNetGain : finalTotalGrossGain)}`;
+  headlineEl.textContent = 
+    `Endkapital: ${fmt(netEnd)}   Einzahlungen: ${fmt(paidTotal)}   Gewinn${withTax ? ' (Netto)' : ''}: ${fmt(profit)}`;
 
-  // Haupt-Chart
+  drawChart(labels, cumDep, cumNet, cumTax, withTax);
+  drawCompare(netEnd, paidTotal, years);
+}
+
+function drawChart(labels, dep, net, tax, withTax) {
   if (chartMain) chartMain.destroy();
   chartMain = new Chart(document.getElementById('chart'), {
     type: 'bar',
-    data: {
-      labels: cumDep.map((_,i) => 'Jahr '+(i+1)),
+    data: { labels,
       datasets: [
-        { label: 'Einzahlung kumuliert', data: cumDep, backgroundColor: 'rgba(101,115,255,0.7)', stack: 's', maxBarThickness:50 },
-        // Zeige Nettogewinn im Chart
-        { label: `Gewinn kumuliert${withTax ? ' (Netto)' : ''}`, data: cumGain, backgroundColor: 'rgba(46,204,113,0.7)', stack: 's', maxBarThickness:50 },
-        // Zeige kumulierte Steuer nur wenn mit Steuer berechnet wurde
-        ...(withTax ? [{ label: 'Steuer kumuliert', data: cumTax, backgroundColor: 'rgba(231,76,60,0.7)', stack: 's', maxBarThickness:50 }] : [])
+        { label: 'Einzahlung kumuliert', data: dep, backgroundColor: 'rgba(101,115,255,0.7)', stack: 's', maxBarThickness: 50 },
+        { label: `Gewinn kumuliert${withTax ? ' (Netto)' : ''}`, data: net, backgroundColor: 'rgba(46,204,113,0.7)', stack: 's', maxBarThickness: 50 },
+        { label: 'Steuer kumuliert', data: tax, backgroundColor: 'rgba(231,76,60,0.7)', stack: 's', maxBarThickness: 50 }
       ]
     },
     options: {
       responsive: false,
-      maintainAspectRatio: false, // Wichtig bei fester Canvas-Höhe im CSS
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels:{
-            font:{
-              // Schriftgröße für Legende bleibt bei 12
-              size: 12
-            }
-          }
-        },
-        tooltip: { // Tooltips formatieren
-             callbacks: {
-                 label: function(context) {
-                     let label = context.dataset.label || '';
-                     if (label) {
-                         label += ': ';
-                     }
-                     if (context.parsed.y !== null) {
-                         label += fmt(context.parsed.y);
-                     }
-                     return label;
-                 }
-             }
-         }
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 16 } } },
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmt(ctx.parsed.y)}` } }
       },
       scales: {
-        y: {
-          beginAtZero:true,
-          ticks:{
-            // stepSize: 50000, // Schrittweite automatisch bestimmen lassen
-            font:{
-              // Schriftgröße für Y-Achse bleibt bei 12
-              size: 16
-            },
-            // Formatierung der Y-Achsen-Beschriftung
-            callback: v => v.toLocaleString('de-DE') // Einfachere Formatierung ohne Währungssymbol für mehr Platz
-            // callback: v => fmt(v) // Alternative mit Währungssymbol
-          }
-        },
-        x: {
-          ticks:{
-            font:{
-              // *** NEU: Schriftgröße für X-Achse weiter reduziert ***
-              size: 14 
-            },
-            autoSkip: true, // Erlaubt Chart.js, Labels zu überspringen, wenn es zu eng wird
-            maxRotation: 45, // Erlaubt das Drehen von Labels bis 45 Grad
-            minRotation: 0
-          }
-        }
+        y: { beginAtZero: true, ticks: { stepSize: 50000, font: { size: 16 }, callback: v => v.toLocaleString('de-DE') } },
+        x: { ticks: { font: { size: 14 }, maxRotation: 15, autoSkip: true } }
       }
-    }
-  });
-
-  // Vergleichs-Chart (Endkapital Netto vs. Alternativen)
-  if (chartCompare) chartCompare.destroy();
-  const bank0 = paidTotal; // Was eingezahlt wurde
-  // Annahme für Tagesgeld: Eingezahlter Betrag wird jährlich mit 2% verzinst
-  // Dies ist eine starke Vereinfachung! Eine genauere Simulation wäre komplexer.
-  let tagesTotal = start;
-  let tagesPaid = start;
-   if (lumpsum > 0 && 1 === lumpYear) { // Einmalzahlung im ersten Jahr berücksichtigen
-       tagesTotal += lumpsum;
-       tagesPaid += lumpsum;
-   }
-  for(let y=1; y<=years; y++) {
-      tagesTotal *= (1 + 0.02); // Jährliche Verzinsung
-      tagesTotal += rate * 12; // Jährliche Einzahlung
-      tagesPaid += rate * 12;
-      // Einmalzahlung in Folgejahren berücksichtigen (am Jahresanfang, vor Verzinsung des neuen Jahres)
-      if (lumpsum > 0 && y + 1 === lumpYear) {
-           tagesTotal += lumpsum;
-           tagesPaid += lumpsum;
-       }
-  }
-  // Korrekterweise müsste man hier auch Steuern auf Tagesgeldzinsen berücksichtigen,
-  // aber zur Vereinfachung lassen wir das oft weg im Vergleich.
-
-  const comparisonData = [withTax ? endCapNet : endCap, bank0, tagesTotal];
-  const comparisonLabels = [`ETF ${withTax ? '(Netto)' : '(Brutto)'}`, 'Bank 0%', 'Tagesgeld 2% (vereinfacht)'];
-
-  chartCompare = new Chart(document.getElementById('compare'),{
-    type:'bar',
-    data:{
-        labels: comparisonLabels,
-        datasets:[{
-            data: comparisonData,
-            backgroundColor:['rgba(46,204,113,0.7)','rgba(149,165,166,0.7)','rgba(52,152,219,0.7)'],
-            maxBarThickness: 80 // Etwas breitere Balken im Vergleichschart
-        }]
-    },
-    options:{
-        responsive:true,
-        maintainAspectRatio: false, // Auch hier wichtig bei fester Höhe
-        plugins:{
-            legend:{display:false}, // Keine Legende für Vergleichschart
-            tooltip: { // Tooltips formatieren
-               callbacks: {
-                   label: function(context) {
-                       let label = context.label || '';
-                       if (label) {
-                           label += ': ';
-                       }
-                       if (context.parsed.y !== null) {
-                           label += fmt(context.parsed.y);
-                       }
-                       return label;
-                   }
-               }
-           }
-        },
-        scales:{
-            y:{
-                beginAtZero:true,
-                ticks:{
-                    // stepSize:50000, // Automatisch
-                    font:{size:12}, // Gleiche Schriftgröße wie Hauptchart Y
-                    callback: v => v.toLocaleString('de-DE')
-                    // callback: v => fmt(v)
-                }
-            },
-            x:{
-                 // Schriftgröße X-Achse Vergleichs-Chart auch angepasst
-                ticks:{font:{size:10}}
-            }
-        }
     }
   });
 }
 
-// Initialberechnung beim Laden (optional) - auskommentiert, damit der User zuerst klickt
-// calc(false);
-
+function drawCompare(endValue, paid, yrs) {
+  if (chartCompare) chartCompare.destroy();
+  const bank0 = paid;
+  const tages = paid * Math.pow(1 + 0.02, yrs);
+  // Reihenfolge: ETF, Tagesgeld 2%, Bank 0%
+  const data = [endValue, tages, bank0];
+  const labels = ['ETF', 'Tagesgeld 2%', 'Bank 0%'];
+  const colors = ['rgba(46,204,113,0.7)', 'rgba(52,152,219,0.7)', 'rgba(149,165,166,0.7)'];
+  chartCompare = new Chart(document.getElementById('compare'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data, backgroundColor: colors, maxBarThickness: 80 }] },
+    options: {
+      responsive: false,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${labels[ctx.dataIndex]}: ${fmt(ctx.parsed.y)}` } } },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 50000, font: { size: 16 }, callback: v => v.toLocaleString('de-DE') } },
+        x: { ticks: { font: { size: 14 } } }
+      }
+    }
+  });
+}
 </script>
 
 </body>
