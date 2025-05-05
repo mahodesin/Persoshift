@@ -68,47 +68,107 @@
 const taxRate = 0.26375;
 let chartMain, chartCompare;
 
-const advBox=document.getElementById('advanced');
-advToggle.onclick=()=>{const open=advBox.style.display!=='none';advBox.style.display=open?'none':'block';advToggle.textContent=open?'Erweiterte Optionen ▼':'Erweiterte Optionen ▲';};
+// helper selectors
+const e = id => document.getElementById(id);
 
-const fmt=n=>n.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0});
-const e=id=>document.getElementById(id);
+// Dropdown toggle fix (define element first!)
+const advBox = e('advanced');
+const advToggle = e('advToggle');
+advToggle.onclick = () => {
+  const open = advBox.style.display !== 'none';
+  advBox.style.display = open ? 'none' : 'block';
+  advToggle.textContent = open ? 'Erweiterte Optionen ▼' : 'Erweiterte Optionen ▲';
+};
+
+const fmt = n => n.toLocaleString('de-DE', { style:'currency', currency:'EUR', maximumFractionDigits:0 });
+
 function calc(withTax){
- const rate=+e('rate').value||0;
- const yrs=+e('years').value||0;
- const pYear=(+e('interest').value||0)/100;
- const start=+e('start').value||0;
- const lump=+e('lumpsum').value||0;
- const lumpY=+e('lumpyear').value||0;
- warn.textContent='';
- if(yrs<1){warn.textContent='Bitte Laufzeit ≥ 1 Jahr';return;}
- if(lump>0&&(lumpY<1||lumpY>yrs)){warn.textContent='Jahr für Einmalzahlung liegt außerhalb der Laufzeit';return;}
- const rM=pYear/12; let value=start; let paid=start;
- const lbl=[],dep=[],netArr=[],taxArr=[];
- for(let y=1;y<=yrs;y++){
-   for(let m=0;m<12;m++){if(y===lumpY&&m===0){value+=lump;paid+=lump;} value=value*(1+rM)+rate;}
-   paid+=rate*12;
-   const gross=value-paid; const tax=withTax?gross*taxRate:0; const net=gross-tax;
-   lbl.push('Jahr '+y); dep.push(rate*12+(y===lumpY?lump:0)); netArr.push(net); taxArr.push(tax);
- }
- headline.textContent=`Endkapital: ${fmt(value)}  Einzahlungen: ${fmt(paid)}  Gewinn: ${fmt(value-paid)}`;
- drawChart(lbl,dep,netArr,taxArr); drawCompare(value,paid,yrs);
+  const rate  = +e('rate').value || 0;
+  const yrs   = +e('years').value || 0;
+  const pYear = (+e('interest').value || 0)/100;
+  const start = +e('start').value || 0;
+  const lump  = +e('lumpsum').value || 0;
+  const lumpY = +e('lumpyear').value || 0;
+  const warnEl = e('warn');
+  warnEl.textContent = '';
+
+  if(yrs < 1){ warnEl.textContent='Bitte Laufzeit ≥ 1 Jahr'; return; }
+  if(lump>0 && (lumpY<1 || lumpY>yrs)){
+    warnEl.textContent='Jahr für Einmalzahlung liegt außerhalb der Laufzeit'; return;
+  }
+
+  const rM = pYear/12;
+  let value = start;
+  let paid  = start;
+  const labels=[], depo=[], netArr=[], taxArr=[];
+
+  for(let y=1; y<=yrs; y++){
+    if(y===lumpY){ value += lump; paid += lump; }
+    for(let m=0;m<12;m++){ value = value*(1+rM) + rate; }
+    paid += rate*12;
+
+    const gross = value - paid;
+    const tax   = withTax ? gross*taxRate : 0;
+    const net   = gross - tax;
+
+    labels.push('Jahr '+y);
+    depo.push(rate*12 + (y===lumpY?lump:0));
+    netArr.push(net);
+    taxArr.push(tax);
+  }
+
+  const endCap = value;
+  const profit = endCap - paid;
+  e('headline').textContent = `Endkapital: ${fmt(endCap)}   Einzahlungen: ${fmt(paid)}   Gewinn: ${fmt(profit)}`;
+
+  drawChart(labels, depo, netArr, taxArr);
+  drawCompare(endCap, paid, yrs);
 }
 
-function niceStep(max){const pow=Math.pow(10,Math.floor(Math.log10(max)));return Math.ceil(max/(10*pow))*pow/4;}
+function niceStep(max){
+  const pow = Math.pow(10, Math.floor(Math.log10(max)));
+  return Math.ceil(max / (10*pow)) * pow / 4; // ~25% steps
+}
 
-function drawChart(lbl,dep,net,tax){if(chartMain)chartMain.destroy();
- const maxY=Math.max(...dep.map((v,i)=>v+net[i]+tax[i]));
- chartMain=new Chart(e('chart'),{type:'bar',data:{labels:lbl,datasets:[
-   {label:'Einzahlung',data:dep,backgroundColor:'rgba(101,115,255,.7)',stack:'s',maxBarThickness:45},
-   {label:'Gewinn (netto)',data:net,backgroundColor:'rgba(46,204,113,.7)',stack:'s',maxBarThickness:45},
-   {label:'Steuer',data:tax,backgroundColor:'rgba(231,76,60,.7)',stack:'s',maxBarThickness:45}]},
-   options:{maintainAspectRatio:false,responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:14}}}},
-     scales:{y:{beginAtZero:true, suggestedMax:maxY*1.1, ticks:{stepSize:niceStep(maxY),font:{size:14},callback:v=>v.toLocaleString('de-DE')}},
-             x:{ticks:{font:{size:14}}}}});}
+function drawChart(lbl,dep,net,tax){
+  if(chartMain) chartMain.destroy();
+  const maxY = Math.max(...dep.map((v,i)=>v+net[i]+tax[i]));
 
-function drawCompare(end,paid,yrs){if(chartCompare)chartCompare.destroy();const bank0=paid;const tages=paid*Math.pow(1.02,yrs);
- chartCompare=new Chart(e('compare'),{type:'bar',data:{labels:['ETF','Bank 0 %','Tagesgeld 2 %'],datasets:[{data:[end,bank0,tages],backgroundColor:['rgba(46,204,113,.7)','rgba(149,165,166,.7)','rgba(52,152,219,.7)'],maxBarThickness:45}]},options:{maintainAspectRatio:false,responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:niceStep(Math.max(end,bank0,tages)),font:{size:14},callback:v=>v.toLocaleString('de-DE')}},x:{ticks:{font:{size:14}}}}});}
+  chartMain = new Chart(e('chart'), {
+    type:'bar',
+    data:{labels:lbl,datasets:[
+      {label:'Einzahlung',data:dep,backgroundColor:'rgba(101,115,255,.7)',stack:'s',maxBarThickness:50},
+      {label:'Gewinn (netto)',data:net,backgroundColor:'rgba(46,204,113,.7)',stack:'s',maxBarThickness:50},
+      {label:'Steuer',data:tax,backgroundColor:'rgba(231,76,60,.7)',stack:'s',maxBarThickness:50}
+    ]},
+    options:{
+      maintainAspectRatio:false,responsive:true,
+      plugins:{legend:{position:'bottom',labels:{font:{size:16}}}},
+      scales:{
+        y:{beginAtZero:true,suggestedMax:maxY*1.15,
+            ticks:{stepSize:niceStep(maxY),font:{size:16},callback:v=>v.toLocaleString('de-DE')}},
+        x:{ticks:{font:{size:16}}}
+      }
+    }
+  });
+}
+
+function drawCompare(end,paid,yrs){
+  if(chartCompare) chartCompare.destroy();
+  const bank0 = paid;
+  const tages = paid * Math.pow(1.02, yrs);
+
+  chartCompare = new Chart(e('compare'), {
+    type:'bar',
+    data:{labels:['ETF','Bank 0 %','Tagesgeld 2 %'],datasets:[{
+      data:[end,bank0,tages],
+      backgroundColor:['rgba(46,204,113,.7)','rgba(149,165,166,.7)','rgba(52,152,219,.7)'],
+      maxBarThickness:50
+    }]},
+    options:{maintainAspectRatio:false,responsive:true,plugins:{legend:{display:false}},
+      scales:{y:{beginAtZero:true,ticks:{stepSize:niceStep(Math.max(end,bank0,tages)),font:{size:16},callback:v=>v.toLocaleString('de-DE')}},x:{ticks:{font:{size:16}}}}}
+  });
+}
 </script>
 </body>
 </html>
