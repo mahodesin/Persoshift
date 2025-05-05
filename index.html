@@ -6,22 +6,79 @@
 
   <!-- Schrift & Chart.js -->
   <link rel="preconnect" href="https://fonts.gstatic.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    body{font-family:'Inter',sans-serif;text-align:center;padding:2rem;max-width:800px;margin:auto;}
-    h1{font-size:2.2rem;margin-bottom:1rem;}
-    section{margin-bottom:2rem;text-align:left;}
-    label{display:block;margin:0.5rem 0;font-size:1rem;}
-    input, button{font-family:inherit;font-size:1rem;padding:0.5rem;border:1px solid #ccc;border-radius:6px;width:100%;box-sizing:border-box;}
-    .row{display:flex;gap:0.5rem;}
-    .btn{background:#5146ff;color:#fff;font-weight:600;border:none;cursor:pointer;border-radius:6px;margin:0.5rem 0;}
-    .btn:hover{background:#3e37d8;}
-    #advToggle{cursor:pointer;margin:1rem 0;font-weight:600;color:#5146ff;}
-    #advanced{display:none;border:1px dashed #bbb;padding:1rem;border-radius:6px;}
-    #warn{color:#c00;font-size:0.9rem;margin-bottom:1rem;}
-    canvas{width:100%!important;height:600px!important;margin-bottom:2rem;}
+    body {
+      font-family: 'Inter', sans-serif;
+      text-align: center;
+      padding: 2rem;
+      max-width: 900px;
+      margin: auto;
+    }
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1.5rem;
+    }
+    section {
+      margin-bottom: 2rem;
+      text-align: left;
+    }
+    label {
+      display: block;
+      margin: 0.8rem 0;
+      font-size: 1.1rem;
+    }
+    input, button {
+      font-family: inherit;
+      font-size: 1.1rem;
+      padding: 0.6rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .row {
+      display: flex;
+      gap: 0.6rem;
+    }
+    .btn {
+      background: #5146ff;
+      color: #fff;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      border-radius: 6px;
+      margin: 0.6rem 0;
+      font-size: 1.2rem;
+    }
+    .btn:hover {
+      background: #3e37d8;
+    }
+    #advToggle {
+      cursor: pointer;
+      margin: 1rem 0;
+      font-weight: 700;
+      color: #5146ff;
+      font-size: 1.1rem;
+    }
+    #advanced {
+      display: none;
+      border: 1px dashed #bbb;
+      padding: 1rem;
+      border-radius: 6px;
+    }
+    #warn {
+      color: #c00;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+    }
+    canvas {
+      width: 100% !important;
+      height: 650px !important;
+      margin-bottom: 2rem;
+    }
   </style>
 </head>
 <body>
@@ -62,14 +119,14 @@
 <h2 id="headline"></h2>
 <canvas id="chart"></canvas>
 
-<h3>Vergleich (Endkapital)</h3>
+<h3 style="font-size:1.5rem; margin-bottom:1rem;">Vergleich (Endkapital)</h3>
 <canvas id="compare"></canvas>
 
 <script>
-const taxRate = 0.26375; // Kapitalertragsteuer 26,375 %
+const taxRate = 0.26375;
 let chartMain, chartCompare;
 
-// Dropdown
+// Toggle
 const advToggle = document.getElementById('advToggle');
 const advBox = document.getElementById('advanced');
 advToggle.onclick = () => {
@@ -78,10 +135,10 @@ advToggle.onclick = () => {
   advToggle.textContent = open ? 'Erweiterte Optionen ▼' : 'Erweiterte Optionen ▲';
 };
 
-// Formatierer
+// Format
 const fmt = n => n.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0});
 
-// Elemente
+// Ele
 const rateEl = document.getElementById('rate');
 const yearsEl = document.getElementById('years');
 const intEl = document.getElementById('interest');
@@ -95,7 +152,7 @@ function calc(withTax) {
   warnEl.textContent = '';
   const rate = parseFloat(rateEl.value) || 0;
   const years = parseInt(yearsEl.value) || 0;
-  const annual = parseFloat(intEl.value) / 100 || 0;
+  const annual = (parseFloat(intEl.value) || 0) / 100;
   const start = parseFloat(startEl.value) || 0;
   const lumpsum = parseFloat(lumpEl.value) || 0;
   const lumpYear = parseInt(lumpYearEl.value) || 0;
@@ -109,12 +166,9 @@ function calc(withTax) {
   const monthlyRate = annual / 12;
   let balance = start;
   let paidTotal = start;
-  let cumDep = [];
-  let cumGain = [];
-  let cumTax = [];
 
-  let totalGain = 0;
-  let totalTax = 0;
+  const labels = [], depCum = [], gainCum = [], taxCum = [];
+  let totalGain = 0, totalTax = 0;
 
   for (let y = 1; y <= years; y++) {
     for (let m = 1; m <= 12; m++) {
@@ -122,56 +176,68 @@ function calc(withTax) {
         balance += lumpsum;
         paidTotal += lumpsum;
       }
-      balance *= (1 + monthlyRate);
-      balance += rate;
+      balance = balance * (1 + monthlyRate) + rate;
       paidTotal += rate;
     }
-    const gross = balance - paidTotal;
-    const tax = withTax ? gross * taxRate : 0;
-    const net = gross - tax;
+    const grossGain = balance - paidTotal;
+    const tax = withTax ? grossGain * taxRate : 0;
     totalTax += tax;
-    totalGain = net;
-
-    cumDep.push(paidTotal);
-    cumGain.push(net);
-    cumTax.push(totalTax);
+    totalGain = grossGain - (withTax ? totalTax : 0);
+    
+    labels.push('Jahr ' + y);
+    depCum.push(paidTotal);
+    gainCum.push(totalGain);
+    taxCum.push(totalTax);
   }
 
   const endCap = balance;
   const profit = endCap - paidTotal;
   headlineEl.textContent = `Endkapital: ${fmt(endCap)}   Einzahlungen: ${fmt(paidTotal)}   Gewinn: ${fmt(profit)}`;
 
-  // Haupt-Chart
+  // Main Chart
   if (chartMain) chartMain.destroy();
   chartMain = new Chart(document.getElementById('chart'), {
     type: 'bar',
     data: {
-      labels: cumDep.map((_,i) => 'Jahr '+(i+1)),
+      labels,
       datasets: [
-        { label: 'Einzahlung kumuliert', data: cumDep, backgroundColor: 'rgba(101,115,255,0.7)', stack: 's', maxBarThickness:50 },
-        { label: 'Gewinn kumuliert', data: cumGain, backgroundColor: 'rgba(46,204,113,0.7)', stack: 's', maxBarThickness:50 },
-        { label: 'Steuer kumuliert', data: cumTax, backgroundColor: 'rgba(231,76,60,0.7)', stack: 's', maxBarThickness:50 }
+        { label: 'Einzahlungen kumuliert', data: depCum, backgroundColor: 'rgba(101,115,255,0.7)', stack: 's', maxBarThickness: 60 },
+        { label: 'Gewinn kumuliert', data: gainCum, backgroundColor: 'rgba(46,204,113,0.7)', stack: 's', maxBarThickness: 60 },
+        { label: 'Steuer kumuliert', data: taxCum, backgroundColor: 'rgba(231,76,60,0.7)', stack: 's', maxBarThickness: 60 }
       ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom', labels:{font:{size:16}} } },
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 18 } } }
+      },
       scales: {
-        y: { beginAtZero:true, ticks:{stepSize:50000, font:{size:16}, callback:v=>v.toLocaleString('de-DE')} },
-        x: { ticks:{font:{size:14}} }
+        y: { beginAtZero: true, ticks: { stepSize: 50000, font: { size: 18 }, callback: v => v.toLocaleString('de-DE') } },
+        x: { ticks: { font: { size: 16 } } }
       }
     }
   });
 
-  // Vergleich
+  // Compare Chart
   if (chartCompare) chartCompare.destroy();
   const bank0 = paidTotal;
-  const tages = paidTotal * Math.pow(1+0.02, years);
-  chartCompare = new Chart(document.getElementById('compare'),{
-    type:'bar',
-    data:{ labels:['ETF','Bank 0%','Tagesgeld 2%'], datasets:[{ data:[endCap,bank0,tages], backgroundColor:['rgba(46,204,113,0.7)','rgba(149,165,166,0.7)','rgba(52,152,219,0.7)'], maxBarThickness:50 }] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true, ticks:{stepSize:50000,font:{size:16},callback:v=>v.toLocaleString('de-DE')} }, x:{ticks:{font:{size:14}}} } }
+  const tages = paidTotal * Math.pow(1 + 0.02, years);
+  chartCompare = new Chart(document.getElementById('compare'), {
+    type: 'bar',
+    data: {
+      labels: ['ETF', 'Bank 0%', 'Tagesgeld 2%'],
+      datasets: [{ data: [endCap, bank0, tages], backgroundColor: ['rgba(46,204,113,0.7)', 'rgba(149,165,166,0.7)', 'rgba(52,152,219,0.7)'], maxBarThickness: 60 }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 50000, font: { size: 18 }, callback: v => v.toLocaleString('de-DE') } },
+        x: { ticks: { font: { size: 16 } } }
+      }
+    }
   });
 }
 </script>
