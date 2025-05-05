@@ -3,100 +3,132 @@
   <head>
     <meta charset="utf-8">
     <title>PersoShift ETF‑Rechner</title>
-    <!-- Font & Chart.js -->
+    <!-- Schrift & Chart.js -->
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-      body{font-family:'Inter',sans-serif;text-align:center;padding:2rem;line-height:1.5;background:#f9fafb;color:#111827}
+      body{font-family:'Inter',sans-serif;text-align:center;padding:2rem;background:#f6f8fa}
       h1{font-size:1.75rem;font-weight:600;margin-bottom:1rem}
-      label{display:block;font-weight:600;margin-bottom:.25rem}
-      input{padding:.5rem;width:100%;border:1px solid #d1d5db;border-radius:.375rem}
-      button{cursor:pointer;border:none;border-radius:.375rem;padding:.75rem 1rem;font-weight:600;margin-top:.5rem;background:#2563eb;color:#fff}
-      button:hover{background:#1d4ed8}
-      #calc{background:#fff;padding:1.5rem;border-radius:.75rem;box-shadow:0 2px 8px rgba(0,0,0,.06)}
-      #result{margin-top:1rem}
+      #calc{max-width:650px;margin:0 auto;text-align:left;background:#fff;padding:2rem;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,.06)}
+      label{font-weight:600}
+      input{padding:.4rem;width:100%;border:1px solid #ccc;border-radius:6px;margin-top:.25rem}
+      button{margin-top:1rem;width:100%;padding:.75rem;font-weight:600;border:none;border-radius:8px;cursor:pointer;background:#2563eb;color:#fff}
+      #result{margin-top:1.25rem;font-size:1.05rem;font-weight:600;line-height:1.6}
       canvas{max-width:700px;margin:2rem auto;display:block}
     </style>
   </head>
   <body>
-    <h1>PersoShift ETF‑Rechner</h1>
+    <h1>PersoShift ETF‑Rechner</h1>
 
-    <section id="calc" style="max-width:600px;margin:2rem auto;text-align:left">
-      <label>Monatsrate (€)
+    <section id="calc">
+      <label>Monatsrate (€)
         <input id="rate" type="number" value="50" min="1">
-      </label><br>
+      </label><br><br>
 
-      <label>Laufzeit (Jahre)
+      <label>Laufzeit (Jahre)
         <input id="years" type="number" value="15" min="1">
-      </label><br>
+      </label><br><br>
 
-      <label>Jahresrendite (%)
+      <label>Jahresrendite (%)
         <input id="interest" type="number" value="7" step="0.1" min="0">
-      </label><br>
+      </label><br><br>
 
       <button onclick="calc()">Berechnen</button>
 
       <div id="result"></div>
+      <div id="compare"></div>
+      <canvas id="chart"></canvas>
     </section>
 
-    <canvas id="chart"></canvas>
-
     <script>
-    let myChart;
+      const taxRate = 0.26375;            // Kapitalertragsteuer + Soli ≈ 26,375 %
+      const inflation = 0.021;            // Langfristiger Inflations‑Ø Deutschland (~ 2,1 %) citeturn0search0
+      let myChart;
 
-    function calc(){
-      const rate=parseFloat(document.getElementById('rate').value);
-      const years=parseInt(document.getElementById('years').value);
-      const interest=parseFloat(document.getElementById('interest').value)/100;
-      const rMonth=interest/12;
-      const contribYear=rate*12;
+      function calc(){
+        const rate     = parseFloat(document.getElementById('rate').value);
+        const years    = parseInt(document.getElementById('years').value);
+        const pA       = parseFloat(document.getElementById('interest').value)/100;
+        const rMonth   = pA/12;
+        const contribYear = rate*12;
 
-      const labels=[]; const contrib=[]; const profit=[];
-      let value=0; let cumProfit=0;
+        let value = 0;
+        let labels=[], deposits=[], profits=[], losses=[];
+        let totalTaxInf=0;
+        let totalLoss=0;
+        let sumProfitNet=0;
 
-      for(let y=1;y<=years;y++){
-        for(let m=0;m<12;m++){
-          value=value*(1+rMonth)+rate;
+        for(let y=1;y<=years;y++){
+          // 12 Monate simulieren
+          for(let m=0;m<12;m++){
+            value = value*(1+rMonth)+rate;
+          }
+          const paidSoFar = contribYear*y;
+          const grossCum  = value - paidSoFar;          // bis Ende Jahr y erwirtschafteter Brutto‑Gewinn
+          const profitThisYearGross = grossCum - profits.reduce((a,b)=>a+b,0) - losses.reduce((a,b)=>a+b,0);
+
+          const tax   = profitThisYearGross*taxRate;
+          const infl  = (paidSoFar + grossCum - tax)*inflation;
+          const lossThisYear = tax+infl;
+          const profitNet    = profitThisYearGross - lossThisYear;
+
+          labels.push("Jahr "+y);
+          deposits.push(contribYear);
+          profits.push(Math.max(0,profitNet));
+          losses.push(lossThisYear);
+
+          totalTaxInf += lossThisYear;
         }
-        const paidSoFar=contribYear*y;
-        const profitCum=value-paidSoFar;
-        const profitThisYear=profitCum-cumProfit;
-        cumProfit=profitCum;
+        totalLoss = totalTaxInf;
+        const endCapBrutto = value;
+        const endCapNet    = value - totalLoss;
+        const paidTotal    = contribYear*years;
+        const netGain      = endCapNet - paidTotal;
 
-        labels.push('Jahr '+y);
-        contrib.push(contribYear);
-        profit.push(profitThisYear);
+        // Ergebnisse
+        const fmt = v=>v.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0});
+        document.getElementById('result').innerHTML =
+          `Endkapital (brutto): <b>${fmt(endCapBrutto)}</b><br>`+
+          `Abzüge Steuer+Inflation: ${fmt(totalLoss)}<br>`+
+          `Endkapital (netto real): <b>${fmt(endCapNet)}</b><br>`+
+          `Einzahlungen: ${fmt(paidTotal)}<br>`+
+          `Realer Gewinn: ${fmt(netGain)}`;
+
+        // Vergleich   0 % vs 2 % Tagesgeld (nominal)
+        const fv0 = paidTotal;                                       // 0 %
+        const fv2 = rate * ( (Math.pow(1+0.02/12,years*12)-1) / (0.02/12) );
+        const realFactor = Math.pow(1+inflation, years);
+        const fv0real = fv0/realFactor;
+        const fv2real = fv2/realFactor;
+        document.getElementById('compare').innerHTML =
+          `<br><u>Zum Vergleich (real):</u><br>`+
+          `0 % Zinsen (Matratze/​Giro): ${fmt(fv0real)}<br>`+
+          `2 % Tagesgeld: ${fmt(fv2real)}`;
+
+        // Diagramm   Einzahlung ☑, Gewinn netto ☑, Abzüge ☑ (gestapelt)
+        if(myChart) myChart.destroy();
+        const ctx = document.getElementById('chart').getContext('2d');
+        myChart = new Chart(ctx, {
+          type:'bar',
+          data:{
+            labels:labels,
+            datasets:[
+              {label:'Einzahlung',data:deposits,backgroundColor:'#2563eb'},
+              {label:'Gewinn (after tax/​infl)',data:profits,backgroundColor:'#059669'},
+              {label:'Abzüge (Steuer+Infl)',data:losses,backgroundColor:'#f97316'}
+            ]
+          },
+          options:{
+            plugins:{legend:{position:'bottom'}},
+            responsive:true,
+            scales:{
+              x:{stacked:true},
+              y:{stacked:true,beginAtZero:true}
+            }
+          }
+        });
       }
-
-      const endCap=value;
-      const inTotal=contribYear*years;
-      const profitTot=endCap-inTotal;
-
-      document.getElementById('result').innerHTML=
-        `Endkapital: <b>${endCap.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}</b><br>`+
-        `Einzahlungen: ${inTotal.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}<br>`+
-        `Zinseszins-Gewinn: ${profitTot.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}`;
-
-      const ctx=document.getElementById('chart').getContext('2d');
-      if(myChart) myChart.destroy();
-      myChart=new Chart(ctx,{
-        type:'bar',
-        data:{
-          labels:labels,
-          datasets:[
-            {label:'Einzahlungen/Jahr',data:contrib},
-            {label:'Zinseszins-Gewinn/Jahr',data:profit}
-          ]
-        },
-        options:{
-          interaction:{mode:'index',intersect:false},
-          plugins:{legend:{position:'bottom'}},
-          responsive:true,
-          scales:{y:{beginAtZero:true}}
-        }
-      });
-    }
     </script>
   </body>
 </html>
