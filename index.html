@@ -10,7 +10,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    body{font-family:'Inter',sans-serif;text-align:center;padding:2rem;max-width:760px;margin:auto;}
+    body{font-family:'Inter',sans-serif;text-align:center;padding:2rem;max-width:900px;margin:auto;}
     h1{margin-bottom:1rem;font-size:2rem;}
     input,button{font-family:inherit;font-size:1rem;padding:0.45rem 0.6rem;border:1px solid #ccc;border-radius:6px;width:100%;box-sizing:border-box;}
     label{display:block;margin:0.6rem 0;text-align:left;}
@@ -19,7 +19,7 @@
     .btn:hover{background:#3e37d8;}
     #advToggle{cursor:pointer;margin:1rem 0;text-decoration:underline;font-weight:600;}
     #advanced{display:none;border:1px dashed #bbb;padding:1rem;border-radius:8px;}
-    canvas{width:100%!important;height:480px!important;}
+    canvas{width:100%!important;height:520px!important;}
     #warn{color:#c00;font-size:0.9rem;margin-top:0.3rem;}
   </style>
 </head>
@@ -65,117 +65,50 @@
 <canvas id="compare"></canvas>
 
 <script>
-const taxRate = 0.26375;          // 26,375 %
+const taxRate = 0.26375;
 let chartMain, chartCompare;
 
-// Dropdown toggle
-const advBox = document.getElementById('advanced');
-const advToggle = document.getElementById('advToggle');
-advToggle.onclick = () => {
-  const open = advBox.style.display !== 'none';
-  advBox.style.display = open ? 'none' : 'block';
-  advToggle.textContent = open ? 'Erweiterte Optionen ▼' : 'Erweiterte Optionen ▲';
-};
+const advBox=document.getElementById('advanced');
+advToggle.onclick=()=>{const open=advBox.style.display!=='none';advBox.style.display=open?'none':'block';advToggle.textContent=open?'Erweiterte Optionen ▼':'Erweiterte Optionen ▲';};
 
-// Format €
-const fmt = n => n.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0});
-
-// Elemente referenzieren
-const rateEl=rate, yearsEl=years, intEl=interest, startEl=start,
-      lumpEl=lumpsum, lumpYearEl=lumpyear, warnEl=warn;
-
+const fmt=n=>n.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0});
+const e=id=>document.getElementById(id);
 function calc(withTax){
-  const rate  = +rateEl.value || 0;
-  const yrs   = +yearsEl.value || 0;
-  const pYear = (+intEl.value || 0)/100;
-  const start = +startEl.value || 0;
-  const lump  = +lumpEl.value || 0;
-  const lumpY = +lumpYearEl.value || 0;
-
-  warnEl.textContent='';
-  if(yrs < 1){warnEl.textContent='Bitte Laufzeit ≥ 1 Jahr eingeben';return;}
-  if(lump>0 && (lumpY<1 || lumpY>yrs)){
-    warnEl.textContent='Jahr für Einmalzahlung liegt außerhalb der Laufzeit';
-    return;
-  }
-
-  const rMonth = pYear/12;
-  let value = start;
-  let paidTotal = start;
-
-  const labels=[], depo=[], netGain=[], taxArr=[];
-  for(let y=1; y<=yrs; y++){
-    for(let m=0; m<12; m++){
-      if(y===lumpY && m===0){ value += lump; }   // Einmalzahlung zu Jahresbeginn
-      value = value*(1+rMonth) + rate;
-    }
-    paidTotal += rate*12 + (y===lumpY ? lump : 0);
-    const grossGain = value - paidTotal;
-    const tax = withTax ? grossGain*taxRate : 0;
-    const net = grossGain - tax;
-
-    labels.push('Jahr '+y);
-    depo.push(rate*12 + (y===lumpY ? lump : 0));
-    netGain.push(net);
-    taxArr.push(tax);
-  }
-
-  const endCap = value;
-  const profit = endCap - paidTotal;
-
-  headline.textContent =
-    `Endkapital: ${fmt(endCap)}   Einzahlungen: ${fmt(paidTotal)}   Gewinn: ${fmt(profit)}`;
-
-  drawChart(labels,depo,netGain,taxArr);
-  drawCompare(endCap,paidTotal,yrs);
+ const rate=+e('rate').value||0;
+ const yrs=+e('years').value||0;
+ const pYear=(+e('interest').value||0)/100;
+ const start=+e('start').value||0;
+ const lump=+e('lumpsum').value||0;
+ const lumpY=+e('lumpyear').value||0;
+ warn.textContent='';
+ if(yrs<1){warn.textContent='Bitte Laufzeit ≥ 1 Jahr';return;}
+ if(lump>0&&(lumpY<1||lumpY>yrs)){warn.textContent='Jahr für Einmalzahlung liegt außerhalb der Laufzeit';return;}
+ const rM=pYear/12; let value=start; let paid=start;
+ const lbl=[],dep=[],netArr=[],taxArr=[];
+ for(let y=1;y<=yrs;y++){
+   for(let m=0;m<12;m++){if(y===lumpY&&m===0){value+=lump;paid+=lump;} value=value*(1+rM)+rate;}
+   paid+=rate*12;
+   const gross=value-paid; const tax=withTax?gross*taxRate:0; const net=gross-tax;
+   lbl.push('Jahr '+y); dep.push(rate*12+(y===lumpY?lump:0)); netArr.push(net); taxArr.push(tax);
+ }
+ headline.textContent=`Endkapital: ${fmt(value)}  Einzahlungen: ${fmt(paid)}  Gewinn: ${fmt(value-paid)}`;
+ drawChart(lbl,dep,netArr,taxArr); drawCompare(value,paid,yrs);
 }
 
-function drawChart(labels,depo,net,tax){
-  if(chartMain) chartMain.destroy();
-  chartMain = new Chart(document.getElementById('chart'),{
-    type:'bar',
-    data:{labels,
-      datasets:[
-        {label:'Einzahlung',data:depo,backgroundColor:'rgba(101,115,255,.7)',stack:'s',maxBarThickness:40},
-        {label:'Gewinn (netto)',data:net,backgroundColor:'rgba(46,204,113,.7)',stack:'s',maxBarThickness:40},
-        {label:'Steuer',data:tax,backgroundColor:'rgba(231,76,60,.7)',stack:'s',maxBarThickness:40}
-    ]},
-    options:{
-      maintainAspectRatio:false,responsive:true,
-      plugins:{legend:{position:'bottom',labels:{font:{size:14}}}},
-      scales:{
-        y:{beginAtZero:true,ticks:{stepSize:25000,font:{size:14},
-            callback:v=>v.toLocaleString('de-DE')}},
-        x:{ticks:{font:{size:14}}}
-      }
-    }
-  });
-}
+function niceStep(max){const pow=Math.pow(10,Math.floor(Math.log10(max)));return Math.ceil(max/(10*pow))*pow/4;}
 
-function drawCompare(end,paid,yrs){
-  if(chartCompare) chartCompare.destroy();
-  const bank0 = paid;
-  const tages = paid * Math.pow(1+0.02, yrs);
+function drawChart(lbl,dep,net,tax){if(chartMain)chartMain.destroy();
+ const maxY=Math.max(...dep.map((v,i)=>v+net[i]+tax[i]));
+ chartMain=new Chart(e('chart'),{type:'bar',data:{labels:lbl,datasets:[
+   {label:'Einzahlung',data:dep,backgroundColor:'rgba(101,115,255,.7)',stack:'s',maxBarThickness:45},
+   {label:'Gewinn (netto)',data:net,backgroundColor:'rgba(46,204,113,.7)',stack:'s',maxBarThickness:45},
+   {label:'Steuer',data:tax,backgroundColor:'rgba(231,76,60,.7)',stack:'s',maxBarThickness:45}]},
+   options:{maintainAspectRatio:false,responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:14}}}},
+     scales:{y:{beginAtZero:true, suggestedMax:maxY*1.1, ticks:{stepSize:niceStep(maxY),font:{size:14},callback:v=>v.toLocaleString('de-DE')}},
+             x:{ticks:{font:{size:14}}}}});}
 
-  chartCompare = new Chart(document.getElementById('compare'),{
-    type:'bar',
-    data:{
-      labels:['ETF','Bank 0 %','Tagesgeld 2 %'],
-      datasets:[{data:[end,bank0,tages],
-        backgroundColor:['rgba(46,204,113,.7)','rgba(149,165,166,.7)','rgba(52,152,219,.7)'],
-        maxBarThickness:40}]
-    },
-    options:{
-      maintainAspectRatio:false,responsive:true,
-      plugins:{legend:{display:false}},
-      scales:{
-        y:{beginAtZero:true,ticks:{stepSize:25000,font:{size:14},
-            callback:v=>v.toLocaleString('de-DE')}},
-        x:{ticks:{font:{size:14}}}
-      }
-    }
-  });
-}
+function drawCompare(end,paid,yrs){if(chartCompare)chartCompare.destroy();const bank0=paid;const tages=paid*Math.pow(1.02,yrs);
+ chartCompare=new Chart(e('compare'),{type:'bar',data:{labels:['ETF','Bank 0 %','Tagesgeld 2 %'],datasets:[{data:[end,bank0,tages],backgroundColor:['rgba(46,204,113,.7)','rgba(149,165,166,.7)','rgba(52,152,219,.7)'],maxBarThickness:45}]},options:{maintainAspectRatio:false,responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:niceStep(Math.max(end,bank0,tages)),font:{size:14},callback:v=>v.toLocaleString('de-DE')}},x:{ticks:{font:{size:14}}}}});}
 </script>
 </body>
 </html>
