@@ -20,8 +20,8 @@
     .btn:hover{background:#3e37d8;}
     #advToggle{cursor:pointer;margin:1rem 0;font-weight:600;color:#5146ff;}
     #advanced{display:none;border:1px dashed #bbb;padding:1rem;border-radius:6px;}
-    #warn{color:#c00;font-size:0.9rem;}
-    canvas{width:100%!important;height:500px!important;margin-bottom:2rem;}
+    #warn{color:#c00;font-size:0.9rem;margin-bottom:1rem;}
+    canvas{width:100%!important;height:600px!important;margin-bottom:2rem;}
   </style>
 </head>
 <body>
@@ -66,95 +66,112 @@
 <canvas id="compare"></canvas>
 
 <script>
-const taxRate=0.26375; // 26,375 % Kapitalertragsteuer
-// Elemente
-const rateEl=document.getElementById('rate'), yearsEl=document.getElementById('years'),
-      intEl=document.getElementById('interest'), startEl=document.getElementById('start'),
-      lumpEl=document.getElementById('lumpsum'), lumpYearEl=document.getElementById('lumpyear'),
-      warnEl=document.getElementById('warn'), headlineEl=document.getElementById('headline');
+const taxRate = 0.26375; // Kapitalertragsteuer 26,375 %
 let chartMain, chartCompare;
 
 // Dropdown
-const advToggle=document.getElementById('advToggle'), advBox=document.getElementById('advanced');
-advToggle.onclick=()=>{
-  const open=advBox.style.display==='block';
-  advBox.style.display=open?'none':'block';
-  advToggle.textContent=open?'Erweiterte Optionen ▼':'Erweiterte Optionen ▲';
+const advToggle = document.getElementById('advToggle');
+const advBox = document.getElementById('advanced');
+advToggle.onclick = () => {
+  const open = advBox.style.display === 'block';
+  advBox.style.display = open ? 'none' : 'block';
+  advToggle.textContent = open ? 'Erweiterte Optionen ▼' : 'Erweiterte Optionen ▲';
 };
 
-// Formatierung
-function fmt(n){return n.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0});}
+// Formatierer
+const fmt = n => n.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0});
 
-function calc(withTax){
-  // Werte lesen
-  const rate=+rateEl.value||0,
-        yrs=+yearsEl.value||0,
-        pYear=(+intEl.value||0)/100,
-        start=+startEl.value||0,
-        lump=+lumpEl.value||0,
-        lumpY=+lumpYearEl.value||0;
-  warnEl.textContent='';
-  if(yrs<1){warnEl.textContent='Bitte Laufzeit ≥ 1 eingeben';return;}
-  if(lump>0 && (lumpY<1||lumpY>yrs)){warnEl.textContent='Einmalzahlung außerhalb Laufzeit';return;}
+// Elemente
+const rateEl = document.getElementById('rate');
+const yearsEl = document.getElementById('years');
+const intEl = document.getElementById('interest');
+const startEl = document.getElementById('start');
+const lumpEl = document.getElementById('lumpsum');
+const lumpYearEl = document.getElementById('lumpyear');
+const warnEl = document.getElementById('warn');
+const headlineEl = document.getElementById('headline');
 
-  // Arrays füllen
-  const labels=[], depCum=[], netCum=[], taxCum=[];
-  let value=start, paidCum=start;
-  for(let y=1;y<=yrs;y++){
-    // Einmalzahlung zu Jahresbeginn
-    if(y===lumpY) paidCum+=lump, value+=lump;
-    // Monatsweiser Aufbau
-    for(let m=0;m<12;m++){
-      value*=1+pYear/12;
-      value+=rate;
-      paidCum+= (m===11?rate:0);
-    }
-    const gross=value-paidCum;
-    const tax=withTax?gross*taxRate:0;
-    const net=gross-tax;
-    labels.push('Jahr '+y);
-    depCum.push(paidCum);
-    taxCum.push(tax);
-    netCum.push(net);
+function calc(withTax) {
+  warnEl.textContent = '';
+  const rate = parseFloat(rateEl.value) || 0;
+  const years = parseInt(yearsEl.value) || 0;
+  const annual = parseFloat(intEl.value) / 100 || 0;
+  const start = parseFloat(startEl.value) || 0;
+  const lumpsum = parseFloat(lumpEl.value) || 0;
+  const lumpYear = parseInt(lumpYearEl.value) || 0;
+
+  if (years < 1) { warnEl.textContent = 'Bitte Laufzeit ≥ 1 Jahr eingeben'; return; }
+  if (lumpsum > 0 && (lumpYear < 1 || lumpYear > years)) {
+    warnEl.textContent = 'Einmalzahlung außerhalb der Laufzeit';
+    return;
   }
 
-  // Headline
-  const endCap=value, profit=endCap-paidCum;
-  headlineEl.textContent=`Endkapital: ${fmt(endCap)}   Einzahlungen: ${fmt(paidCum)}   Gewinn: ${fmt(profit)}`;
+  const monthlyRate = annual / 12;
+  let balance = start;
+  let paidTotal = start;
+  let cumDep = [];
+  let cumGain = [];
+  let cumTax = [];
 
-  // Chart zeichnen
-  if(chartMain) chartMain.destroy();
-  chartMain=new Chart(document.getElementById('chart'),{
-    type:'bar',
-    data:{labels,datasets:[
-      {label:'Einzahlung (kumuliert)',data:depCum,backgroundColor:'rgba(101,115,255,0.7)',stack:'all'},
-      {label:'Gewinn (netto kumuliert)',data:netCum,backgroundColor:'rgba(46,204,113,0.7)',stack:'all'},
-      {label:'Steuer kumuliert',data:taxCum,backgroundColor:'rgba(231,76,60,0.7)',stack:'all'}
-    ]},
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{position:'bottom',labels:{font:{size:16}}}},
-      scales:{
-        y:{beginAtZero:true,ticks:{font:{size:16},stepSize:50000,callback:v=>v.toLocaleString('de-DE')}},
-        x:{ticks:{font:{size:14}}}
+  let totalGain = 0;
+  let totalTax = 0;
+
+  for (let y = 1; y <= years; y++) {
+    for (let m = 1; m <= 12; m++) {
+      if (m === 1 && y === lumpYear) {
+        balance += lumpsum;
+        paidTotal += lumpsum;
+      }
+      balance *= (1 + monthlyRate);
+      balance += rate;
+      paidTotal += rate;
+    }
+    const gross = balance - paidTotal;
+    const tax = withTax ? gross * taxRate : 0;
+    const net = gross - tax;
+    totalTax += tax;
+    totalGain = net;
+
+    cumDep.push(paidTotal);
+    cumGain.push(net);
+    cumTax.push(totalTax);
+  }
+
+  const endCap = balance;
+  const profit = endCap - paidTotal;
+  headlineEl.textContent = `Endkapital: ${fmt(endCap)}   Einzahlungen: ${fmt(paidTotal)}   Gewinn: ${fmt(profit)}`;
+
+  // Haupt-Chart
+  if (chartMain) chartMain.destroy();
+  chartMain = new Chart(document.getElementById('chart'), {
+    type: 'bar',
+    data: {
+      labels: cumDep.map((_,i) => 'Jahr '+(i+1)),
+      datasets: [
+        { label: 'Einzahlung kumuliert', data: cumDep, backgroundColor: 'rgba(101,115,255,0.7)', stack: 's', maxBarThickness:50 },
+        { label: 'Gewinn kumuliert', data: cumGain, backgroundColor: 'rgba(46,204,113,0.7)', stack: 's', maxBarThickness:50 },
+        { label: 'Steuer kumuliert', data: cumTax, backgroundColor: 'rgba(231,76,60,0.7)', stack: 's', maxBarThickness:50 }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels:{font:{size:16}} } },
+      scales: {
+        y: { beginAtZero:true, ticks:{stepSize:50000, font:{size:16}, callback:v=>v.toLocaleString('de-DE')} },
+        x: { ticks:{font:{size:14}} }
       }
     }
   });
 
   // Vergleich
-  if(chartCompare) chartCompare.destroy();
-  const bank0=paidCum,
-        tages=paidCum*Math.pow(1+0.02,yrs);
-  chartCompare=new Chart(document.getElementById('compare'),{
+  if (chartCompare) chartCompare.destroy();
+  const bank0 = paidTotal;
+  const tages = paidTotal * Math.pow(1+0.02, years);
+  chartCompare = new Chart(document.getElementById('compare'),{
     type:'bar',
-    data:{labels:['ETF','Bank 0%','Tagesgeld 2%'],datasets:[{data:[endCap,bank0,tages],
-      backgroundColor:['rgba(46,204,113,0.7)','rgba(149,165,166,0.7)','rgba(52,152,219,0.7)']}]
-    },
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false}},
-      scales:{y:{beginAtZero:true,ticks:{font:{size:16},stepSize:50000,callback:v=>v.toLocaleString('de-DE')}},
-             x:{ticks:{font:{size:14}}}}
-    }
+    data:{ labels:['ETF','Bank 0%','Tagesgeld 2%'], datasets:[{ data:[endCap,bank0,tages], backgroundColor:['rgba(46,204,113,0.7)','rgba(149,165,166,0.7)','rgba(52,152,219,0.7)'], maxBarThickness:50 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true, ticks:{stepSize:50000,font:{size:16},callback:v=>v.toLocaleString('de-DE')} }, x:{ticks:{font:{size:14}}} } }
   });
 }
 </script>
