@@ -5,7 +5,46 @@
     <title>PersoShift – coming soon</title>
   </head>
   <body>
-    <h1>Hello from PersoShift 👋</h1>
-    <p>Site is booting up … stay tuned!</p>
+  <h1>PersoShift ETF-Rechner</h1>
+
+  <section id="calc" style="max-width:600px;margin:2rem auto;text-align:left">
+    <label>Monatsrate (€)<br>
+      <input id="rate" type="number" value="50" min="1" style="width:100%">
+    </label><br><br>
+
+    <label>Laufzeit (Jahre)<br>
+      <input id="years" type="number" value="15" min="1" style="width:100%">
+    </label><br><br>
+
+    <label>Jahresrendite (%)<br>
+      <input id="interest" type="number" value="7" step="0.1" min="0" style="width:100%">
+    </label><br><br>
+
+    <button onclick="calc()" style="width:100%;padding:0.6rem;font-weight:600">
+      Berechnen
+    </button><br><br>
+
+    <div id="result" style="font-size:1.1rem;font-weight:600"></div>
+  </section>
+
+  <script>
+    function calc(){
+      const rate     = parseFloat(document.getElementById('rate').value);
+      const years    = parseInt(document.getElementById('years').value);
+      const interest = parseFloat(document.getElementById('interest').value) / 100;
+      const months   = years * 12;
+      const rMonthly = interest / 12;
+
+      // Sparformel: FV = P * [ ((1+r)^n - 1) / r ]
+      const endCap   = rate * ( (Math.pow(1+rMonthly, months) - 1) / rMonthly );
+      const inTotal  = rate * months;
+      const profit   = endCap - inTotal;
+
+      document.getElementById('result').innerHTML =
+        `Endkapital: <b>${endCap.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits':0})}</b><br>`
+      + `Einzahlungen: ${inTotal.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits':0})}<br>`
+      + `Zinseszins-Gewinn: ${profit.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits':0})}`;
+    }
+  </script>
   </body>
 </html>
