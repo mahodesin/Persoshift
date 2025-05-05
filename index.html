@@ -40,10 +40,15 @@
       const inTotal  = rate * months;
       const profit   = endCap - inTotal;
 
-      document.getElementById('result').innerHTML =
-        `Endkapital: <b>${endCap.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits':0})}</b><br>`
-      + `Einzahlungen: ${inTotal.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits':0})}<br>`
-      + `Zinseszins-Gewinn: ${profit.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits':0})}`;
+document.getElementById('result').innerHTML =
+  `Endkapital: <b>${endCap.toLocaleString('de-DE',{
+      style:'currency',currency:'EUR',maximumFractionDigits:0})}</b><br>` +
+
+  `Einzahlungen: ${inTotal.toLocaleString('de-DE',{
+      style:'currency',currency:'EUR',maximumFractionDigits:0})}<br>` +
+
+  `Zinseszins-Gewinn: ${profit.toLocaleString('de-DE',{
+      style:'currency',currency:'EUR',maximumFractionDigits:0})}`;
     }
   </script>
   </body>
