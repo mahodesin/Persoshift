@@ -195,7 +195,7 @@ function calc(withTax) {
           position: 'bottom',
           labels:{
             font:{
-              // Schriftgröße für Legende reduziert
+              // Schriftgröße für Legende bleibt bei 12
               size: 12
             }
           }
@@ -221,7 +221,7 @@ function calc(withTax) {
           ticks:{
             // stepSize: 50000, // Schrittweite automatisch bestimmen lassen
             font:{
-              // Schriftgröße für Y-Achse reduziert
+              // Schriftgröße für Y-Achse bleibt bei 12
               size: 12
             },
             // Formatierung der Y-Achsen-Beschriftung
@@ -232,11 +232,11 @@ function calc(withTax) {
         x: {
           ticks:{
             font:{
-              // Schriftgröße für X-Achse reduziert
-              size: 12
+              // *** NEU: Schriftgröße für X-Achse weiter reduziert ***
+              size: 10
             },
             autoSkip: true, // Erlaubt Chart.js, Labels zu überspringen, wenn es zu eng wird
-            maxRotation: 45, // Erlaubt das Drehen von Labels
+            maxRotation: 45, // Erlaubt das Drehen von Labels bis 45 Grad
             minRotation: 0
           }
         }
@@ -306,13 +306,14 @@ function calc(withTax) {
                 beginAtZero:true,
                 ticks:{
                     // stepSize:50000, // Automatisch
-                    font:{size:12}, // Gleiche Schriftgröße wie Hauptchart
+                    font:{size:12}, // Gleiche Schriftgröße wie Hauptchart Y
                     callback: v => v.toLocaleString('de-DE')
                     // callback: v => fmt(v)
                 }
             },
             x:{
-                ticks:{font:{size:12}} // Gleiche Schriftgröße
+                 // Schriftgröße X-Achse Vergleichs-Chart auch angepasst
+                ticks:{font:{size:10}}
             }
         }
     }
