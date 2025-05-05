@@ -8,20 +8,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-      body{font-family:'Inter',sans-serif;text-align:center;padding:2rem;max-width:900px;margin:auto}
-      h1{font-size:2rem;margin-bottom:1.5rem}
-      label{font-weight:600}
-      input,button{font-size:1rem;padding:.4rem .6rem;width:100%;box-sizing:border-box;margin-top:.2rem}
-      button{background:#2563eb;color:#fff;border:none;border-radius:4px;cursor:pointer;margin-top:.8rem}
-      button:hover{background:#1d4ed8}
-      #result{margin-top:1rem;font-size:1.1rem;font-weight:600}
-      canvas{max-width:800px;margin:2rem auto}
+      body{font-family:'Inter',sans-serif;text-align:center;padding:2rem;}
+      section{max-width:700px;margin:2rem auto;text-align:left}
+      input,button{width:100%;padding:0.6rem;font-size:1rem;box-sizing:border-box}
+      button{font-weight:600;margin-top:0.4rem;cursor:pointer}
+      h2{margin-top:2.5rem;text-align:center}
     </style>
   </head>
   <body>
     <h1>PersoShift ETF‑Rechner</h1>
 
-    <section id="calc" style="text-align:left">
+    <section>
       <label>Monatsrate (€)
         <input id="rate" type="number" value="50" min="1">
       </label><br><br>
@@ -34,91 +31,97 @@
         <input id="interest" type="number" value="7" step="0.1" min="0">
       </label><br><br>
 
-      <button onclick="calc()">Berechnen</button>
+      <button onclick="calc(false)">Berechnen ohne Steuer</button>
+      <button onclick="calc(true)">Berechnen mit Steuer (26,375 % DE)</button>
 
-      <div id="result"></div>
+      <div id="result" style="font-size:1.1rem;font-weight:600;margin-top:1rem"></div>
     </section>
 
-    <canvas id="chart"></canvas>
+    <canvas id="chart1" style="max-width:800px;margin:0 auto;display:block"></canvas>
 
-    <script>
-      const TAX_RATE = 0.26375; // dt. Abgeltungsteuer inkl. Soli, ohne KiSt
-      let myChart;
+    <h2>Vergleich – Was passiert mit 0 % bzw. 2 % Zinsen?</h2>
+    <div id="compare" style="font-weight:600"></div>
+    <canvas id="chart2" style="max-width:600px;margin:1rem auto 0;display:block"></canvas>
 
-      function calc(){
-        const rate   = parseFloat(document.getElementById('rate').value);
-        const years  = parseInt(document.getElementById('years').value);
-        const pA     = parseFloat(document.getElementById('interest').value)/100;
-        const pM     = pA/12;
-        const months = years*12;
+<script>
+let chart1, chart2;
+const taxRate = 0.26375; // Kapitalertragsteuer + Soli in Deutschland
 
-        // Endwert der Sparrate
-        const endCap = rate * ( (Math.pow(1+pM, months) - 1) / pM );
-        const deposits = rate * months;
-        const grossProfit = endCap - deposits;
-        const tax = grossProfit * TAX_RATE;
-        const netProfit = grossProfit - tax;
+function calc(applyTax){
+  const rate     = parseFloat(document.getElementById('rate').value);
+  const years    = parseInt(document.getElementById('years').value);
+  const interest = parseFloat(document.getElementById('interest').value) / 100;
+  const rMonth   = interest / 12;
 
-        document.getElementById('result').innerHTML =
-          `Endkapital: <b>${fmt(endCap)}</b><br>`+
-          `Einzahlungen: ${fmt(deposits)}<br>`+
-          `Brutto‑Gewinn: ${fmt(grossProfit)}<br>`+
-          `Steuer (26,38 %): –${fmt(tax)}<br>`+
-          `Netto‑Gewinn: <b>${fmt(netProfit)}</b>`;
+  const contribYear = rate * 12;
+  const labels=[], contrib=[], profitNet=[], taxArr=[];
 
-        // Jahreswerte für Chart
-        const labels = [];
-        const depositArr = [];
-        const netArr = [];
-        const taxArr = [];
-        let value = 0;
-        let gainCum = 0;
-        let taxCum = 0;
-        for(let y=1;y<=years;y++){
-          for(let m=0;m<12;m++){
-            value = value*(1+pM)+rate;
-          }
-          const depY = rate*12;
-          const grossY = value - deposits; // kumuliert
-          const profitY = grossY - gainCum; // Gewinn dieses Jahres
-          const taxY = profitY*TAX_RATE;
-          const netY = profitY - taxY;
-          gainCum += profitY;
-          taxCum += taxY;
+  let value=0, profitGrossCumPrev=0, taxCum=0;
 
-          labels.push('Jahr '+y);
-          depositArr.push(depY);
-          netArr.push(netY);
-          taxArr.push(taxY);
-        }
+  for(let y=1;y<=years;y++){
+    for(let m=0;m<12;m++){
+      value = value*(1+rMonth)+rate;
+    }
+    const paidSoFar = contribYear * y;
+    const profitGrossCum = value - paidSoFar;
+    const profitThisYearGross = profitGrossCum - profitGrossCumPrev;
 
-        drawChart(labels, depositArr, netArr, taxArr);
-      }
+    const taxThisYear = applyTax ? profitThisYearGross * taxRate : 0;
+    const profitThisYearNet = profitThisYearGross - taxThisYear;
 
-      function drawChart(labels, dep, net, tax){
-        if(myChart) myChart.destroy();
-        const ctx = document.getElementById('chart').getContext('2d');
-        myChart = new Chart(ctx, {
-          type:'bar',
-          data:{
-            labels:labels,
-            datasets:[
-              {label:'Einzahlung',data:dep,backgroundColor:'#93c5fd'},
-              {label:'Netto‑Gewinn',data:net,backgroundColor:'#4ade80'},
-              {label:'Steuer',data:tax,backgroundColor:'#fca5a5'}
-            ]
-          },
-          options:{
-            responsive:true,
-            plugins:{legend:{position:'bottom'}},
-            scales:{y:{beginAtZero:true,stacked:true},x:{stacked:true}}
-          }
-        });
-      }
+    labels.push('Jahr '+y);
+    contrib.push(contribYear);
+    profitNet.push(profitThisYearNet);
+    taxArr.push(taxThisYear);
 
-      function fmt(num){
-        return num.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0});
-      }
-    </script>
+    profitGrossCumPrev = profitGrossCum;
+    taxCum += taxThisYear;
+  }
+
+  const endCapGross = value;
+  const inTotal = contribYear*years;
+  const endCapNet = applyTax ? (endCapGross - taxCum) : endCapGross;
+  const profitTot = endCapNet - inTotal;
+
+  document.getElementById('result').innerHTML =
+    `Endkapital: <b>${endCapNet.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}</b><br>`+
+    `Einzahlungen: ${inTotal.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}<br>`+
+    (applyTax ? `Gezahlte Steuer: ${taxCum.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}<br>` : '')+
+    `Netto‑Gewinn: ${profitTot.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}`;
+
+  // Chart 1 – Jahresverlauf gestapelt
+  if(chart1) chart1.destroy();
+  const ctx1=document.getElementById('chart1').getContext('2d');
+  chart1=new Chart(ctx1,{
+    type:'bar',
+    data:{labels:labels,datasets:[
+      {label:'Einzahlungen',data:contrib,backgroundColor:'rgba(54,162,235,0.6)'},
+      {label:'Netto‑Gewinn',data:profitNet,backgroundColor:'rgba(75,192,192,0.7)'},
+      {label:'Steuer',data:taxArr,backgroundColor:'rgba(255,99,132,0.6)'}
+    ]},
+    options:{plugins:{legend:{position:'bottom'}},responsive:true,scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true}}}
+  });
+
+  // Vergleichs­werte
+  const rMonthTg=0.02/12;
+  let valueTg=0;
+  for(let m=0;m<years*12;m++) valueTg = valueTg*(1+rMonthTg)+rate;
+  const bank0 = inTotal;
+
+  document.getElementById('compare').innerHTML =
+    `ETF‑Depot: ${endCapNet.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}<br>`+
+    `Tagesgeld (2 %): ${valueTg.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}<br>`+
+    `"Unterm Kopfkissen" (0 %): ${bank0.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}`;
+
+  if(chart2) chart2.destroy();
+  const ctx2=document.getElementById('chart2').getContext('2d');
+  chart2=new Chart(ctx2,{
+    type:'bar',
+    data:{labels:['ETF','Tagesgeld 2 %','0 %'],datasets:[{
+      label:'Endwert',data:[endCapNet,valueTg,bank0],backgroundColor:['rgba(75,192,192,0.7)','rgba(54,162,235,0.6)','rgba(201,203,207,0.6)']}]},
+    options:{plugins:{legend:{display:false}},responsive:true,scales:{y:{beginAtZero:true}}}
+  });
+}
+</script>
   </body>
 </html>
