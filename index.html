@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="utf-8">
-  <title>PersoShift ETF-Rechner</title>
+  <title>PersoShift ETF‑Rechner</title>
 
   <!-- Schrift & Chart.js -->
   <link rel="preconnect" href="https://fonts.gstatic.com">
@@ -10,7 +10,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    body{font-family:'Inter',sans-serif;text-align:center;padding:2rem;max-width:900px;margin:auto;}
+    body{font-family:'Inter',sans-serif;text-align:center;padding:2rem;max-width:960px;margin:auto;}
     h1{margin-bottom:1rem;font-size:2rem;}
     input,button{font-family:inherit;font-size:1rem;padding:0.45rem 0.6rem;border:1px solid #ccc;border-radius:6px;width:100%;box-sizing:border-box;}
     label{display:block;margin:0.6rem 0;text-align:left;}
@@ -19,13 +19,13 @@
     .btn:hover{background:#3e37d8;}
     #advToggle{cursor:pointer;margin:1rem 0;text-decoration:underline;font-weight:600;}
     #advanced{display:none;border:1px dashed #bbb;padding:1rem;border-radius:8px;}
-    canvas{width:100%!important;height:520px!important;}
-    #warn{color:#c00;font-size:0.9rem;margin-top:0.3rem;}
+    canvas{width:100%!important;height:600px!important;}
+    #warn{color:#c00;font-size:0.9rem;margin-top:0.3rem;min-height:1.2rem;}
   </style>
 </head>
 <body>
 
-<h1>PersoShift ETF-Rechner</h1>
+<h1>PersoShift ETF‑Rechner</h1>
 
 <section style="text-align:left">
   <label>Monatsrate (€)
@@ -47,7 +47,7 @@
       <label style="flex:1">Einmalzahlung (€)
         <input id="lumpsum" type="number" value="0" min="0">
       </label>
-      <label style="flex:1">im Jahr
+      <label style="flex:1">ab Jahr
         <input id="lumpyear" type="number" value="1" min="1">
       </label>
     </div>
@@ -68,85 +68,81 @@
 const taxRate = 0.26375;
 let chartMain, chartCompare;
 
-// helper selectors
-const e = id => document.getElementById(id);
+const $ = id => document.getElementById(id);
+const fmt = n => n.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0});
 
-// Dropdown toggle fix (define element first!)
-const advBox = e('advanced');
-const advToggle = e('advToggle');
-advToggle.onclick = () => {
-  const open = advBox.style.display !== 'none';
-  advBox.style.display = open ? 'none' : 'block';
-  advToggle.textContent = open ? 'Erweiterte Optionen ▼' : 'Erweiterte Optionen ▲';
+// Toggle
+$("advToggle").onclick = () => {
+  const box = $("advanced");
+  const open = box.style.display !== 'none';
+  box.style.display = open ? 'none':'block';
+  $("advToggle").textContent = open ? 'Erweiterte Optionen ▼' : 'Erweiterte Optionen ▲';
 };
 
-const fmt = n => n.toLocaleString('de-DE', { style:'currency', currency:'EUR', maximumFractionDigits:0 });
-
 function calc(withTax){
-  const rate  = +e('rate').value || 0;
-  const yrs   = +e('years').value || 0;
-  const pYear = (+e('interest').value || 0)/100;
-  const start = +e('start').value || 0;
-  const lump  = +e('lumpsum').value || 0;
-  const lumpY = +e('lumpyear').value || 0;
-  const warnEl = e('warn');
-  warnEl.textContent = '';
+  const rate   = +$("rate").value || 0;
+  const yrs    = +$("years").value || 0;
+  const pYear  = (+$("interest").value||0)/100;
+  const start  = +$("start").value || 0;
+  const lump   = +$("lumpsum").value || 0;
+  const lumpY  = +$("lumpyear").value || 0;
+  const warn   = $("warn");
+  warn.textContent='';
 
-  if(yrs < 1){ warnEl.textContent='Bitte Laufzeit ≥ 1 Jahr'; return; }
-  if(lump>0 && (lumpY<1 || lumpY>yrs)){
-    warnEl.textContent='Jahr für Einmalzahlung liegt außerhalb der Laufzeit'; return;
-  }
+  if(yrs<1){warn.textContent='Bitte Laufzeit ≥ 1 Jahr';return;}
+  if(lump>0 && (lumpY<1||lumpY>yrs)){warn.textContent='Jahr für Einmalzahlung liegt außerhalb der Laufzeit';return;}
 
   const rM = pYear/12;
   let value = start;
   let paid  = start;
+
   const labels=[], depo=[], netArr=[], taxArr=[];
-
-  for(let y=1; y<=yrs; y++){
-    if(y===lumpY){ value += lump; paid += lump; }
-    for(let m=0;m<12;m++){ value = value*(1+rM) + rate; }
-    paid += rate*12;
-
+  for(let y=1;y<=yrs;y++){
+    for(let m=0;m<12;m++){
+      value = value*(1+rM) + rate; // Monate vorher verzinsen
+    }
+    if(lump>0 && y>=lumpY){ // Einmalzahlung addiert und ab jetzt verzinst
+      if(y===lumpY){ value += lump; }
+    }
+    paid += rate*12 + (y===lumpY?lump:0);
     const gross = value - paid;
     const tax   = withTax ? gross*taxRate : 0;
     const net   = gross - tax;
-
     labels.push('Jahr '+y);
     depo.push(rate*12 + (y===lumpY?lump:0));
     netArr.push(net);
     taxArr.push(tax);
   }
 
-  const endCap = value;
-  const profit = endCap - paid;
-  e('headline').textContent = `Endkapital: ${fmt(endCap)}   Einzahlungen: ${fmt(paid)}   Gewinn: ${fmt(profit)}`;
-
-  drawChart(labels, depo, netArr, taxArr);
-  drawCompare(endCap, paid, yrs);
+  const endCap=value; const profit=endCap-paid;
+  $("headline").textContent=`Endkapital: ${fmt(endCap)}   Einzahlungen: ${fmt(paid)}   Gewinn: ${fmt(profit)}`;
+  drawChart(labels,depo,netArr,taxArr);
+  drawCompare(endCap,paid,yrs);
 }
 
 function niceStep(max){
-  const pow = Math.pow(10, Math.floor(Math.log10(max)));
-  return Math.ceil(max / (10*pow)) * pow / 4; // ~25% steps
+  const raw=max/6; const pow=Math.pow(10,Math.floor(Math.log10(raw)));
+  return Math.ceil(raw/pow)*pow;
 }
 
 function drawChart(lbl,dep,net,tax){
   if(chartMain) chartMain.destroy();
-  const maxY = Math.max(...dep.map((v,i)=>v+net[i]+tax[i]));
+  const combined=dep.map((v,i)=>v+net[i]+tax[i]);
+  const maxY=Math.max(...combined);
 
-  chartMain = new Chart(e('chart'), {
+  chartMain = new Chart($("chart"),{
     type:'bar',
     data:{labels:lbl,datasets:[
-      {label:'Einzahlung',data:dep,backgroundColor:'rgba(101,115,255,.7)',stack:'s',maxBarThickness:50},
-      {label:'Gewinn (netto)',data:net,backgroundColor:'rgba(46,204,113,.7)',stack:'s',maxBarThickness:50},
-      {label:'Steuer',data:tax,backgroundColor:'rgba(231,76,60,.7)',stack:'s',maxBarThickness:50}
+      {label:'Einzahlung',data:dep,backgroundColor:'#667aff',stack:'s',maxBarThickness:50},
+      {label:'Gewinn (netto)',data:net,backgroundColor:'#2ecc71',stack:'s',maxBarThickness:50},
+      {label:'Steuer',data:tax,backgroundColor:'#e74c3c',stack:'s',maxBarThickness:50}
     ]},
     options:{
       maintainAspectRatio:false,responsive:true,
       plugins:{legend:{position:'bottom',labels:{font:{size:16}}}},
       scales:{
-        y:{beginAtZero:true,suggestedMax:maxY*1.15,
-            ticks:{stepSize:niceStep(maxY),font:{size:16},callback:v=>v.toLocaleString('de-DE')}},
+        y:{beginAtZero:true,suggestedMax:maxY*1.2,
+          ticks:{stepSize:niceStep(maxY),font:{size:16},callback:v=>v.toLocaleString('de-DE')}},
         x:{ticks:{font:{size:16}}}
       }
     }
@@ -155,18 +151,16 @@ function drawChart(lbl,dep,net,tax){
 
 function drawCompare(end,paid,yrs){
   if(chartCompare) chartCompare.destroy();
-  const bank0 = paid;
-  const tages = paid * Math.pow(1.02, yrs);
+  const bank0=paid;
+  const tages=paid*Math.pow(1.02,yrs);
+  const maxY=Math.max(end,bank0,tages);
 
-  chartCompare = new Chart(e('compare'), {
+  chartCompare = new Chart($("compare"),{
     type:'bar',
     data:{labels:['ETF','Bank 0 %','Tagesgeld 2 %'],datasets:[{
-      data:[end,bank0,tages],
-      backgroundColor:['rgba(46,204,113,.7)','rgba(149,165,166,.7)','rgba(52,152,219,.7)'],
-      maxBarThickness:50
-    }]},
+      data:[end,bank0,tages],backgroundColor:['#2ecc71','#95a5a6','#3498db'],maxBarThickness:50}]},
     options:{maintainAspectRatio:false,responsive:true,plugins:{legend:{display:false}},
-      scales:{y:{beginAtZero:true,ticks:{stepSize:niceStep(Math.max(end,bank0,tages)),font:{size:16},callback:v=>v.toLocaleString('de-DE')}},x:{ticks:{font:{size:16}}}}}
+      scales:{y:{beginAtZero:true,ticks:{stepSize:niceStep(maxY),font:{size:16},callback:v=>v.toLocaleString('de-DE')}},x:{ticks:{font:{size:16}}}}}
   });
 }
 </script>
