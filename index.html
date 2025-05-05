@@ -20,8 +20,8 @@
     #advToggle { cursor: pointer; margin: 1rem 0; font-weight: 600; color: #5146ff; }
     #advanced { display: none; border: 1px dashed #bbb; padding: 1rem; border-radius: 6px; margin-top: 0.5rem; /* Kleiner Abstand zum Toggle */ }
     #warn { color: #c00; font-size: 0.9rem; margin-bottom: 1rem; min-height: 1.2em; /* Platzhalter, damit Layout nicht springt */ }
-    /* !important entfernt, damit Chart.js besser steuern kann */
-    canvas { width: 100%; height: 450px; margin-bottom: 2rem; /* Höhe etwas reduziert, teste was passt */ }
+    /* Höhe mit !important wiederhergestellt, um Springen zu verhindern */
+    canvas { width: 100%; height: 450px !important; margin-bottom: 2rem; }
     h3 { margin-top: 3rem; } /* Mehr Abstand nach oben für die Vergleichsüberschrift */
   </style>
 </head>
@@ -259,7 +259,8 @@ function calc(withTax) {
       tagesTotal *= (1 + 0.02); // Jährliche Verzinsung
       tagesTotal += rate * 12; // Jährliche Einzahlung
       tagesPaid += rate * 12;
-      if (lumpsum > 0 && y + 1 === lumpYear) { // Einmalzahlung in Folgejahren berücksichtigen
+      // Einmalzahlung in Folgejahren berücksichtigen (am Jahresanfang, vor Verzinsung des neuen Jahres)
+      if (lumpsum > 0 && y + 1 === lumpYear) {
            tagesTotal += lumpsum;
            tagesPaid += lumpsum;
        }
@@ -282,7 +283,7 @@ function calc(withTax) {
     },
     options:{
         responsive:true,
-        maintainAspectRatio: false,
+        maintainAspectRatio: false, // Auch hier wichtig bei fester Höhe
         plugins:{
             legend:{display:false}, // Keine Legende für Vergleichschart
             tooltip: { // Tooltips formatieren
@@ -318,7 +319,7 @@ function calc(withTax) {
   });
 }
 
-// Initialberechnung beim Laden (optional)
+// Initialberechnung beim Laden (optional) - auskommentiert, damit der User zuerst klickt
 // calc(false);
 
 </script>
