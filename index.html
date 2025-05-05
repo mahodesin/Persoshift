@@ -8,120 +8,140 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-      body{font-family:'Inter',sans-serif;text-align:center;padding:2rem;}
-      section{max-width:700px;margin:2rem auto;text-align:left}
-      input,button{width:100%;padding:0.6rem;font-size:1rem;box-sizing:border-box}
-      button{font-weight:600;margin-top:0.4rem;cursor:pointer}
-      h2{margin-top:2.5rem;text-align:center}
+      body{font-family:'Inter',sans-serif;text-align:center;padding:2rem;max-width:900px;margin:auto}
+      input,button{padding:.5rem;width:100%;box-sizing:border-box;border:1px solid #ccc;border-radius:4px}
+      label{display:block;margin-top:1rem;font-weight:600;text-align:left}
+      button{background:#2563eb;color:#fff;border:none;cursor:pointer;margin-top:1rem}
+      button:hover{background:#1d4ed8}
+      canvas{margin-top:2rem}
+      #compare{margin-top:3rem;text-align:left}
     </style>
   </head>
   <body>
     <h1>PersoShift ETF‑Rechner</h1>
 
-    <section>
+    <section id="calc" style="text-align:left">
       <label>Monatsrate (€)
         <input id="rate" type="number" value="50" min="1">
-      </label><br><br>
-
+      </label>
       <label>Laufzeit (Jahre)
         <input id="years" type="number" value="15" min="1">
-      </label><br><br>
-
+      </label>
       <label>Jahresrendite (%)
         <input id="interest" type="number" value="7" step="0.1" min="0">
-      </label><br><br>
+      </label>
+      <label>Startkapital (€)
+        <input id="start" type="number" value="0" min="0">
+      </label>
+      <label>Zusätzliche Einmalzahlung (€)
+        <input id="lumpsum" type="number" value="0" min="0">
+      </label>
+      <label>Einmalzahlung nach … Jahren (0 = sofort)
+        <input id="lumpyear" type="number" value="0" min="0">
+      </label>
 
-      <button onclick="calc(false)">Berechnen ohne Steuer</button>
-      <button onclick="calc(true)">Berechnen mit Steuer (26,375 % DE)</button>
-
-      <div id="result" style="font-size:1.1rem;font-weight:600;margin-top:1rem"></div>
+      <button onclick="calc(false)">Berechnen (brutto)</button>
+      <button onclick="calc(true)">Berechnen (mit Steuer)</button>
     </section>
 
-    <canvas id="chart1" style="max-width:800px;margin:0 auto;display:block"></canvas>
+    <div id="result" style="font-size:1.1rem;font-weight:600;margin-top:1.5rem"></div>
+    <canvas id="chart"></canvas>
 
-    <h2>Vergleich – Was passiert mit 0 % bzw. 2 % Zinsen?</h2>
-    <div id="compare" style="font-weight:600"></div>
-    <canvas id="chart2" style="max-width:600px;margin:1rem auto 0;display:block"></canvas>
+    <section id="compare"></section>
 
-<script>
-let chart1, chart2;
-const taxRate = 0.26375; // Kapitalertragsteuer + Soli in Deutschland
+    <script>
+      const taxRate = 0.26375; // Kapitalertragsteuer + Soli (ohne Kirchensteuer)
+      let myChart;
 
-function calc(applyTax){
-  const rate     = parseFloat(document.getElementById('rate').value);
-  const years    = parseInt(document.getElementById('years').value);
-  const interest = parseFloat(document.getElementById('interest').value) / 100;
-  const rMonth   = interest / 12;
+      function calc(withTax){
+        const rate     = parseFloat(document.getElementById('rate').value);
+        const years    = parseInt(document.getElementById('years').value);
+        const interest = parseFloat(document.getElementById('interest').value) / 100;
+        const startCap = parseFloat(document.getElementById('start').value);
+        const lump     = parseFloat(document.getElementById('lumpsum').value);
+        const lumpYear = parseInt(document.getElementById('lumpyear').value);
 
-  const contribYear = rate * 12;
-  const labels=[], contrib=[], profitNet=[], taxArr=[];
+        const rMonth  = interest / 12;
+        const labels  = [];
+        const contrib = [];
+        const taxArr  = [];
+        const gainArr = [];
 
-  let value=0, profitGrossCumPrev=0, taxCum=0;
+        let value = startCap;
+        let paidTotal = startCap;
+        let taxTotal = 0;
+        let gainCum  = 0;
 
-  for(let y=1;y<=years;y++){
-    for(let m=0;m<12;m++){
-      value = value*(1+rMonth)+rate;
-    }
-    const paidSoFar = contribYear * y;
-    const profitGrossCum = value - paidSoFar;
-    const profitThisYearGross = profitGrossCum - profitGrossCumPrev;
+        for(let y=1;y<=years;y++){
+          let depositYear = rate*12;
+          if(lump>0 && y===lumpYear){
+            value += lump; // Einzahlung vor Jahresbeginn
+            paidTotal += lump;
+            depositYear += lump;
+          }
+          // 12 Monate Zins + Beiträge
+          for(let m=0;m<12;m++){
+            value = value*(1+rMonth)+rate;
+          }
+          paidTotal += rate*12;
+          const gainThisYear = value - paidTotal - taxTotal;
+          let taxThisYear = 0;
+          if(withTax && gainThisYear>0){
+            taxThisYear = gainThisYear*taxRate;
+            taxTotal   += taxThisYear;
+          }
+          gainCum = value - paidTotal - taxTotal;
 
-    const taxThisYear = applyTax ? profitThisYearGross * taxRate : 0;
-    const profitThisYearNet = profitThisYearGross - taxThisYear;
+          labels.push("Jahr "+y);
+          contrib.push(depositYear);
+          taxArr.push(taxThisYear);
+          gainArr.push(gainThisYear - taxThisYear);
+        }
 
-    labels.push('Jahr '+y);
-    contrib.push(contribYear);
-    profitNet.push(profitThisYearNet);
-    taxArr.push(taxThisYear);
+        const endCap = value - taxTotal;
+        const profitNet = endCap - paidTotal;
 
-    profitGrossCumPrev = profitGrossCum;
-    taxCum += taxThisYear;
-  }
+        document.getElementById('result').innerHTML=
+          `Endkapital: <b>${endCap.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}</b><br>`+
+          `Einzahlungen: ${paidTotal.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}<br>`+
+          (withTax ? `Bez. Steuer: ${taxTotal.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}<br>` : '')+
+          `Gewinn: ${profitNet.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}`;
 
-  const endCapGross = value;
-  const inTotal = contribYear*years;
-  const endCapNet = applyTax ? (endCapGross - taxCum) : endCapGross;
-  const profitTot = endCapNet - inTotal;
+        // Chart
+        if(myChart) myChart.destroy();
+        const ctx=document.getElementById('chart').getContext('2d');
+        myChart=new Chart(ctx,{
+          type:'bar',
+          data:{labels:labels,datasets:[
+            {label:'Einzahlungen',data:contrib,backgroundColor:'rgba(99,102,241,0.6)'},
+            {label:'Netto‑Gewinn',data:gainArr,backgroundColor:'rgba(16,185,129,0.6)'},
+            {label:'Steuer',data:taxArr,backgroundColor:'rgba(239,68,68,0.6)'}
+          ]},
+          options:{plugins:{legend:{position:'bottom'}},responsive:true,scales:{y:{beginAtZero:true}}}
+        });
 
-  document.getElementById('result').innerHTML =
-    `Endkapital: <b>${endCapNet.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}</b><br>`+
-    `Einzahlungen: ${inTotal.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}<br>`+
-    (applyTax ? `Gezahlte Steuer: ${taxCum.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}<br>` : '')+
-    `Netto‑Gewinn: ${profitTot.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}`;
+        // Vergleich
+        const tgRate=0.02;
+        const tgValue = calcAlt(value=startCap,lump,lumpYear,rate,years,tgRate);
+        const zeroValue= calcAlt(value=startCap,lump,lumpYear,rate,years,0);
+        document.getElementById('compare').innerHTML=`<h2>Vergleich nach ${years} Jahren</h2>`+
+          `<p><b>ETF${withTax?' (netto)':''}:</b> ${endCap.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}<br>`+
+          `<b>Tagesgeld (2 %):</b> ${tgValue.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}<br>`+
+          `<b>Kopf kissen (0 %):</b> ${zeroValue.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}</p>`;
+      }
 
-  // Chart 1 – Jahresverlauf gestapelt
-  if(chart1) chart1.destroy();
-  const ctx1=document.getElementById('chart1').getContext('2d');
-  chart1=new Chart(ctx1,{
-    type:'bar',
-    data:{labels:labels,datasets:[
-      {label:'Einzahlungen',data:contrib,backgroundColor:'rgba(54,162,235,0.6)'},
-      {label:'Netto‑Gewinn',data:profitNet,backgroundColor:'rgba(75,192,192,0.7)'},
-      {label:'Steuer',data:taxArr,backgroundColor:'rgba(255,99,132,0.6)'}
-    ]},
-    options:{plugins:{legend:{position:'bottom'}},responsive:true,scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true}}}
-  });
-
-  // Vergleichs­werte
-  const rMonthTg=0.02/12;
-  let valueTg=0;
-  for(let m=0;m<years*12;m++) valueTg = valueTg*(1+rMonthTg)+rate;
-  const bank0 = inTotal;
-
-  document.getElementById('compare').innerHTML =
-    `ETF‑Depot: ${endCapNet.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}<br>`+
-    `Tagesgeld (2 %): ${valueTg.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}<br>`+
-    `"Unterm Kopfkissen" (0 %): ${bank0.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}`;
-
-  if(chart2) chart2.destroy();
-  const ctx2=document.getElementById('chart2').getContext('2d');
-  chart2=new Chart(ctx2,{
-    type:'bar',
-    data:{labels:['ETF','Tagesgeld 2 %','0 %'],datasets:[{
-      label:'Endwert',data:[endCapNet,valueTg,bank0],backgroundColor:['rgba(75,192,192,0.7)','rgba(54,162,235,0.6)','rgba(201,203,207,0.6)']}]},
-    options:{plugins:{legend:{display:false}},responsive:true,scales:{y:{beginAtZero:true}}}
-  });
-}
-</script>
+      function calcAlt(value,startLump,lumpYear,rate,years,annualRate){
+        const rMonth = annualRate/12;
+        let val=value;
+        if(startLump>0 && lumpYear===0){val+=startLump;}
+        for(let y=1;y<=years;y++){
+          if(startLump>0 && y===lumpYear){val+=startLump;}
+          for(let m=0;m<12;m++){
+            val = val*(1+rMonth)+rate;
+          }
+        }
+        return val;
+      }
+    </script>
   </body>
 </html>
