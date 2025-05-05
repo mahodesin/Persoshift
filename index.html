@@ -1,36 +1,39 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
   <head>
     <meta charset="utf-8">
-    <title>PersoShift ETF-Rechner</title>
-    <!-- Schrift & Chart.js -->
+    <title>PersoShift ETF‑Rechner</title>
+    <!-- Font & Chart.js -->
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-      body{font-family:'Inter',sans-serif;text-align:center;padding:2rem;}
-      input,button{font-size:1rem;padding:0.4rem;width:100%;}
-      label{font-weight:600;}
-      #calc{max-width:600px;margin:2rem auto;text-align:left}
-      #result{font-size:1.1rem;font-weight:600;margin-top:1rem}
+      body{font-family:'Inter',sans-serif;text-align:center;padding:2rem;line-height:1.5;background:#f9fafb;color:#111827}
+      h1{font-size:1.75rem;font-weight:600;margin-bottom:1rem}
+      label{display:block;font-weight:600;margin-bottom:.25rem}
+      input{padding:.5rem;width:100%;border:1px solid #d1d5db;border-radius:.375rem}
+      button{cursor:pointer;border:none;border-radius:.375rem;padding:.75rem 1rem;font-weight:600;margin-top:.5rem;background:#2563eb;color:#fff}
+      button:hover{background:#1d4ed8}
+      #calc{background:#fff;padding:1.5rem;border-radius:.75rem;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+      #result{margin-top:1rem}
       canvas{max-width:700px;margin:2rem auto;display:block}
     </style>
   </head>
   <body>
-    <h1>PersoShift ETF-Rechner</h1>
+    <h1>PersoShift ETF‑Rechner</h1>
 
-    <section id="calc">
-      <label>Monatsrate (€)<br>
+    <section id="calc" style="max-width:600px;margin:2rem auto;text-align:left">
+      <label>Monatsrate (€)
         <input id="rate" type="number" value="50" min="1">
-      </label><br><br>
+      </label><br>
 
-      <label>Laufzeit (Jahre)<br>
+      <label>Laufzeit (Jahre)
         <input id="years" type="number" value="15" min="1">
-      </label><br><br>
+      </label><br>
 
-      <label>Jahresrendite (%)<br>
+      <label>Jahresrendite (%)
         <input id="interest" type="number" value="7" step="0.1" min="0">
-      </label><br><br>
+      </label><br>
 
       <button onclick="calc()">Berechnen</button>
 
@@ -40,61 +43,60 @@
     <canvas id="chart"></canvas>
 
     <script>
-      let myChart;
-      function calc(){
-        const rate     = parseFloat(document.getElementById('rate').value);
-        const years    = parseInt(document.getElementById('years').value);
-        const interest = parseFloat(document.getElementById('interest').value) / 100;
-        const rMonth   = interest / 12;
+    let myChart;
 
-        const contribYear = rate * 12;
-        const labels  = [];
-        const contrib = [];
-        const profit  = [];
+    function calc(){
+      const rate=parseFloat(document.getElementById('rate').value);
+      const years=parseInt(document.getElementById('years').value);
+      const interest=parseFloat(document.getElementById('interest').value)/100;
+      const rMonth=interest/12;
+      const contribYear=rate*12;
 
-        let value = 0;
-        let profitAccum = 0;
-        for (let y = 1; y <= years; y++){
-          for (let m = 0; m < 12; m++){
-            value = value * (1 + rMonth) + rate;
-          }
-          const paidSoFar = contribYear * y;
-          const profitCum = value - paidSoFar;
-          const profitThisYear = profitCum - profitAccum;
-          profitAccum = profitCum;
+      const labels=[]; const contrib=[]; const profit=[];
+      let value=0; let cumProfit=0;
 
-          labels.push('Jahr '+y);
-          contrib.push(contribYear);
-          profit.push(profitThisYear);
+      for(let y=1;y<=years;y++){
+        for(let m=0;m<12;m++){
+          value=value*(1+rMonth)+rate;
         }
+        const paidSoFar=contribYear*y;
+        const profitCum=value-paidSoFar;
+        const profitThisYear=profitCum-cumProfit;
+        cumProfit=profitCum;
 
-        const endCap  = value;
-        const inTotal = contribYear * years;
-        const profitTot = endCap - inTotal;
-
-        document.getElementById('result').innerHTML =
-          `Endkapital: <b>${endCap.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}</b><br>` +
-          `Einzahlungen: ${inTotal.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}<br>` +
-          `Zinseszins-Gewinn: ${profitTot.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}`;
-
-        if (myChart) myChart.destroy();
-        const ctx = document.getElementById('chart').getContext('2d');
-        myChart = new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: labels,
-            datasets: [
-              { label: 'Einzahlungen/Jahr', data: contrib },
-              { label: 'Gewinn/Jahr', data: profit }
-            ]
-          },
-          options: {
-            plugins:{legend:{position:'bottom'}},
-            responsive:true,
-            scales:{y:{beginAtZero:true}}
-          }
-        });
+        labels.push('Jahr '+y);
+        contrib.push(contribYear);
+        profit.push(profitThisYear);
       }
+
+      const endCap=value;
+      const inTotal=contribYear*years;
+      const profitTot=endCap-inTotal;
+
+      document.getElementById('result').innerHTML=
+        `Endkapital: <b>${endCap.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}</b><br>`+
+        `Einzahlungen: ${inTotal.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}<br>`+
+        `Zinseszins-Gewinn: ${profitTot.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0})}`;
+
+      const ctx=document.getElementById('chart').getContext('2d');
+      if(myChart) myChart.destroy();
+      myChart=new Chart(ctx,{
+        type:'bar',
+        data:{
+          labels:labels,
+          datasets:[
+            {label:'Einzahlungen/Jahr',data:contrib},
+            {label:'Zinseszins-Gewinn/Jahr',data:profit}
+          ]
+        },
+        options:{
+          interaction:{mode:'index',intersect:false},
+          plugins:{legend:{position:'bottom'}},
+          responsive:true,
+          scales:{y:{beginAtZero:true}}
+        }
+      });
+    }
     </script>
   </body>
 </html>
