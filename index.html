@@ -72,6 +72,41 @@
         </label>
       </div>
       <div class="row">
+        <label style="flex:1">Auszahlplan Betrag (€)
+          <input id="payoutPlanAmount" type="number" value="0" min="0">
+        </label>
+      </div>
+      <div class="row">
+        <div style="flex:1">
+          <label>Auszahlplan: Ab Jahr
+            <input id="payoutStartYear" type="number" value="1" min="1">
+          </label>
+        </div>
+        <div style="flex:1">
+          <label>Intervall
+            <select id="payoutInterval">
+              <option value="monthly">Monatlich</option>
+              <option value="yearly">Jährlich</option>
+              <option value="custom">Eigenes Intervall</option>
+            </select>
+          </label>
+        </div>
+        <div style="flex:1">
+          <label>Auszahlintervall in Tage
+            <input id="payoutIntervalDays" type="number" placeholder="Auszahlintervall in Tage" disabled>
+          </label>
+        </div>
+      </div>
+    </div>
+      <div class="row">
+        <label style="flex:1">Auszahlung (€)
+          <input id="payout" type="number" value="0" min="0">
+        </label>
+        <label style="flex:1">im Jahr
+          <input id="payoutYear" type="number" value="1" min="1">
+        </label>
+      </div>
+      <div class="row">
         <div style="flex:1">
           <label>Auszahlplan: Ab Jahr
             <input id="payoutStartYear" type="number" value="1" min="1">
