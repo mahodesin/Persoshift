@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="utf-8">
-  <title>PersoShift ETF-Rechner</title>
+  <title>PersoShift ETF‑Rechner</title>
 
   <!-- Schrift & Chart.js -->
   <link rel="preconnect" href="https://fonts.gstatic.com">
@@ -10,67 +10,171 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    body { font-family: 'Inter', sans-serif; text-align: center; padding: 2rem; max-width: 800px; margin: auto; }
-    h1 { font-size: 2.4rem; margin-bottom: 1rem; }
-    section { margin-bottom: 2rem; text-align: left; }
-    label { display: block; margin: 0.5rem 0; font-size: 1rem; }
-    input, button { font-family: inherit; font-size: 1rem; padding: 0.5rem; border: 1px solid #ccc; border-radius: 6px; width: 100%; box-sizing: border-box; }
-    .row { display: flex; gap: 0.5rem; }
-    .btn { background: #5146ff; color: #fff; font-weight: 600; border: none; cursor: pointer; border-radius: 6px; margin: 0.5rem 0; padding: 0.75rem; }
-    .btn:hover { background: #3e37d8; }
-    #advToggle { cursor: pointer; margin: 1rem 0; font-weight: 600; color: #5146ff; }
-    #advanced { display: none; border: 1px dashed #bbb; padding: 1rem; border-radius: 6px; margin-top: 0.5rem; }
-    #warn { color: #c00; font-size: 0.9rem; margin-bottom: 1rem; min-height: 1.2em; }
-    /* Fixiertes Canvas */
-    canvas { width: 100% !important; max-width: 760px; height: 600px !important; margin: 2rem auto; display: block; }
+    :root {
+      --bg: #f9f9fa;
+      --card-bg: #ffffff;
+      --primary: #4A90E2;
+      --primary-hover: #357ABD;
+      --text: #333333;
+      --muted: #666666;
+      --border: #e0e0e0;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 760px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    h1 {
+      text-align: center;
+      font-size: 2.4rem;
+      margin-bottom: 1.5rem;
+    }
+    .card {
+      background-color: var(--card-bg);
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      margin-bottom: 2rem;
+    }
+    label {
+      display: block;
+      margin: 0.75rem 0 0.25rem;
+      font-size: 1rem;
+      color: var(--text);
+    }
+    input[type="number"] {
+      width: 100%;
+      padding: 0.6rem;
+      font-size: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      transition: border-color 0.3s;
+    }
+    input[type="number"]:focus {
+      border-color: var(--primary);
+      outline: none;
+    }
+    .row {
+      display: flex;
+      gap: 1rem;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 0.75rem;
+      margin: 1rem 0;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fff;
+      background-color: var(--primary);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    .btn:hover {
+      background-color: var(--primary-hover);
+    }
+    #advToggle {
+      display: block;
+      margin: 1rem 0;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--primary);
+      cursor: pointer;
+    }
+    #advanced {
+      display: none;
+      background-color: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    #warn {
+      color: #c00;
+      font-size: 0.9rem;
+      min-height: 1.2em;
+      margin-top: 0.5rem;
+    }
+    h2, h3 {
+      text-align: center;
+      margin-top: 2rem;
+      font-size: 1.5rem;
+      color: var(--text);
+    }
+    canvas {
+      display: block;
+      width: 100% !important;
+      max-width: 760px;
+      height: 600px !important;
+      margin: 1.5rem auto;
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+    }
   </style>
 </head>
 <body>
 
-<h1>PersoShift ETF-Rechner</h1>
+<div class="container">
+  <h1>PersoShift ETF‑Rechner</h1>
 
-<section>
-  <label>Monatsrate (€)
-    <input id="rate" type="number" value="50" min="0">
-  </label>
-  <label>Laufzeit (Jahre)
-    <input id="years" type="number" value="15" min="1">
-  </label>
-  <label>Jahresrendite (%)
-    <input id="interest" type="number" value="7" step="0.1" min="0">
-  </label>
-
-  <div id="advToggle">Erweiterte Optionen ▼</div>
-  <div id="advanced">
-    <label>Startkapital (€)
-      <input id="start" type="number" value="0" min="0">
+  <div class="card">
+    <label>Monatsrate (€)
+      <input id="rate" type="number" value="50" min="0">
     </label>
-    <div class="row">
-      <label style="flex:1">Einmalzahlung (€)
-        <input id="lumpsum" type="number" value="0" min="0">
+    <label>Laufzeit (Jahre)
+      <input id="years" type="number" value="15" min="1">
+    </label>
+    <label>Jahresrendite (%)
+      <input id="interest" type="number" value="7" step="0.1" min="0">
+    </label>
+
+    <div id="advToggle">Erweiterte Optionen ▼</div>
+    <div id="advanced">
+      <label>Startkapital (€)
+        <input id="start" type="number" value="0" min="0">
       </label>
-      <label style="flex:1">im Jahr
-        <input id="lumpyear" type="number" value="1" min="1">
-      </label>
+      <div class="row">
+        <label style="flex:1">Einmalzahlung (€)
+          <input id="lumpsum" type="number" value="0" min="0">
+        </label>
+        <label style="flex:1">im Jahr
+          <input id="lumpyear" type="number" value="1" min="1">
+        </label>
+      </div>
     </div>
+
+    <button class="btn" onclick="calc(false)">Berechnen (Brutto)</button>
+    <button class="btn" onclick="calc(true)">Berechnen (mit Steuer)</button>
+    <div id="warn"></div>
   </div>
 
-  <button class="btn" onclick="calc(false)">Berechnen (Brutto)</button>
-  <button class="btn" onclick="calc(true)">Berechnen (mit Steuer)</button>
-  <div id="warn"></div>
-</section>
+  <h2 id="headline"></h2>
+  <canvas id="chart" width="800" height="600"></canvas>
 
-<h2 id="headline"></h2>
-<canvas id="chart" width="760" height="600"></canvas>
-
-<h3>Vergleich (Endkapital)</h3>
-<canvas id="compare" width="760" height="600"></canvas>
+  <h3>Vergleich (Endkapital)</h3>
+  <canvas id="compare" width="800" height="600"></canvas>
+</div>
 
 <script>
-const taxRate = 0.26375; // 26,375 %
+const taxRate = 0.26375;
 let chartMain, chartCompare;
 
-// Dropdown
+// Global Chart.js Defaults
+Chart.defaults.font.family = 'Inter, sans-serif';
+Chart.defaults.font.size   = 16;
+
+// Dropdown toggle
 const advToggle = document.getElementById('advToggle');
 const advBox = document.getElementById('advanced');
 advToggle.onclick = () => {
@@ -79,10 +183,10 @@ advToggle.onclick = () => {
   advToggle.textContent = open ? 'Erweiterte Optionen ▼' : 'Erweiterte Optionen ▲';
 };
 
-// Formatierer
+// Formatierungsfunktion
 const fmt = n => n.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0});
 
-// Elemente referenzieren
+// Element-Refs
 const rateEl = document.getElementById('rate');
 const yearsEl = document.getElementById('years');
 const intEl = document.getElementById('interest');
@@ -96,7 +200,7 @@ function calc(withTax) {
   warnEl.textContent = '';
   const rate = parseFloat(rateEl.value) || 0;
   const years = parseInt(yearsEl.value) || 0;
-  const annual = parseFloat(intEl.value) / 100 || 0;
+  const annual = (parseFloat(intEl.value) || 0) / 100;
   const start = parseFloat(startEl.value) || 0;
   const lumpsum = parseFloat(lumpEl.value) || 0;
   const lumpYear = parseInt(lumpYearEl.value) || 0;
@@ -110,94 +214,64 @@ function calc(withTax) {
   const monthlyRate = annual / 12;
   let balance = start;
   let paidTotal = start;
-  let totalGainGross = 0;
-  let totalTaxCalculated = 0;
 
-  const labels = [];
-  const cumDep = [];
-  const cumNet = [];
-  const cumTax = [];
+  const labels = [], depCum = [], gainCum = [], taxCum = [];
+  let grossPrev = 0, taxTotal = 0;
 
   for (let y = 1; y <= years; y++) {
-    if (lumpsum > 0 && y === lumpYear) {
-      balance += lumpsum;
-      paidTotal += lumpsum;
-    }
+    if (lumpsum > 0 && y === lumpYear) { balance += lumpsum; paidTotal += lumpsum; }
     for (let m = 1; m <= 12; m++) {
       balance *= (1 + monthlyRate);
       balance += rate;
       paidTotal += rate;
     }
-    const grossGain = balance - paidTotal;
-    const yearGrossGain = grossGain - totalGainGross;
-    totalGainGross = grossGain;
-    let yearTax = 0;
-    if (withTax && yearGrossGain > 0) {
-      yearTax = yearGrossGain * taxRate;
-      totalTaxCalculated += yearTax;
-    }
+    const gross = balance - paidTotal;
+    const yearTax = withTax ? Math.max(0, (gross - grossPrev) * taxRate) : 0;
+    taxTotal += yearTax;
+    const net = gross - taxTotal;
+    grossPrev = gross;
+
     labels.push('Jahr ' + y);
-    cumDep.push(paidTotal);
-    cumNet.push(grossGain - (withTax ? totalTaxCalculated : 0));
-    cumTax.push(withTax ? totalTaxCalculated : 0);
+    depCum.push(paidTotal);
+    gainCum.push(net);
+    taxCum.push(taxTotal);
   }
 
-  const endCap = balance;
-  const netEnd = withTax ? paidTotal + (totalGainGross - totalTaxCalculated) : endCap;
-  const profit = (withTax ? totalGainGross - totalTaxCalculated : totalGainGross);
+  const finalGross = balance - paidTotal;
+  const finalTax = withTax ? finalGross * taxRate : 0;
+  const finalNet = finalGross - finalTax;
+  const endDisplay = withTax ? paidTotal + finalNet : balance;
 
-  headlineEl.textContent = 
-    `Endkapital: ${fmt(netEnd)}   Einzahlungen: ${fmt(paidTotal)}   Gewinn${withTax ? ' (Netto)' : ''}: ${fmt(profit)}`;
+  headlineEl.textContent = `Endkapital: ${fmt(endDisplay)}   Einzahlungen: ${fmt(paidTotal)}   Gewinn${withTax ? ' (Netto)' : ''}: ${fmt(withTax ? finalNet : finalGross)}`;
 
-  drawChart(labels, cumDep, cumNet, cumTax, withTax);
-  drawCompare(netEnd, paidTotal, years);
-}
-
-function drawChart(labels, dep, net, tax, withTax) {
+  // Hauptchart
   if (chartMain) chartMain.destroy();
-  chartMain = new Chart(document.getElementById('chart'), {
+  chartMain = new Chart(document.getElementById('chart').getContext('2d'), {
     type: 'bar',
-    data: { labels,
+    data: {
+      labels,
       datasets: [
-        { label: 'Einzahlung kumuliert', data: dep, backgroundColor: 'rgba(101,115,255,0.7)', stack: 's', maxBarThickness: 50 },
-        { label: `Gewinn kumuliert${withTax ? ' (Netto)' : ''}`, data: net, backgroundColor: 'rgba(46,204,113,0.7)', stack: 's', maxBarThickness: 50 },
-        { label: 'Steuer kumuliert', data: tax, backgroundColor: 'rgba(231,76,60,0.7)', stack: 's', maxBarThickness: 50 }
+        { label: 'Einzahlung kumuliert', data: depCum, backgroundColor: 'rgba(101,115,255,0.7)', stack: 's', maxBarThickness: 50 },
+        { label: `Gewinn kumuliert${withTax ? ' (Netto)' : ''}`, data: gainCum, backgroundColor: 'rgba(46,204,113,0.7)', stack: 's', maxBarThickness: 50 },
+        ...(withTax ? [{ label: 'Steuer kumuliert', data: taxCum, backgroundColor: 'rgba(231,76,60,0.7)', stack: 's', maxBarThickness: 50 }] : [])
       ]
     },
-    options: {
-      responsive: false,
-      maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom', labels: { font: { size: 16 } } },
-        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmt(ctx.parsed.y)}` } }
-      },
-      scales: {
-        y: { beginAtZero: true, ticks: { stepSize: 50000, font: { size: 16 }, callback: v => v.toLocaleString('de-DE') } },
-        x: { ticks: { font: { size: 14 }, maxRotation: 15, autoSkip: true } }
-      }
-    }
+    options: { responsive: false, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true }, x: { } } }
   });
-}
 
-function drawCompare(endValue, paid, yrs) {
+  // Vergleich
   if (chartCompare) chartCompare.destroy();
-  const bank0 = paid;
-  const tages = paid * Math.pow(1 + 0.02, yrs);
-  // Reihenfolge: ETF, Tagesgeld 2%, Bank 0%
-  const data = [endValue, tages, bank0];
-  const labels = ['ETF', 'Tagesgeld 2%', 'Bank 0%'];
-  const colors = ['rgba(46,204,113,0.7)', 'rgba(52,152,219,0.7)', 'rgba(149,165,166,0.7)'];
-  chartCompare = new Chart(document.getElementById('compare'), {
+  const bank0 = paidTotal;
+  let tdTotal = start; let tdPaid = start;
+  if (lumpsum > 0 && lumpYear === 1) { tdTotal += lumpsum; tdPaid += lumpsum; }
+  for (let y = 1; y <= years; y++) { tdTotal = tdTotal * 1.02 + rate * 12; tdPaid += rate * 12; if (lumpsum > 0 && y + 1 === lumpYear) { tdTotal += lumpsum; tdPaid += lumpsum; } }
+  const compareData = [withTax ? paidTotal + finalNet : balance, tdTotal, bank0];
+  const compareLabels = ['ETF', 'Tagesgeld 2%', 'Bank 0%'];
+
+  chartCompare = new Chart(document.getElementById('compare').getContext('2d'), {
     type: 'bar',
-    data: { labels, datasets: [{ data, backgroundColor: colors, maxBarThickness: 80 }] },
-    options: {
-      responsive: false,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${labels[ctx.dataIndex]}: ${fmt(ctx.parsed.y)}` } } },
-      scales: {
-        y: { beginAtZero: true, ticks: { stepSize: 50000, font: { size: 16 }, callback: v => v.toLocaleString('de-DE') } },
-        x: { ticks: { font: { size: 14 } } }
-      }
-    }
+    data: { labels: compareLabels, datasets: [{ data: compareData, backgroundColor: ['rgba(46,204,113,0.7)','rgba(52,152,219,0.7)','rgba(149,165,166,0.7)'], maxBarThickness: 50 }] },
+    options: { responsive: false, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true }, x: {} } }
   });
 }
 </script>
