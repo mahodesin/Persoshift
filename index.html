@@ -110,17 +110,19 @@
     <div id="warn"></div>
   </div>
   <h2 id="headline"></h2>
-  <canvas id="chart"></canvas> <h3>Vergleich (Endkapital)</h3>
-  <canvas id="compare"></canvas> </div>
+  <canvas id="chart"></canvas>
+  <h3>Vergleich (Endkapital)</h3>
+  <canvas id="compare"></canvas>
+</div>
 <script>
 const taxRate = 0.26375;
 let chartMain, chartCompare;
 
 // Chart.js defaults
 Chart.defaults.font.family = 'Inter, sans-serif';
-Chart.defaults.font.size = 14; // Adjusted for better fit on smaller screens
+Chart.defaults.font.size = 14;
 Chart.defaults.plugins.legend.position = 'bottom';
-Chart.defaults.maintainAspectRatio = false; // Important for responsive canvas
+Chart.defaults.maintainAspectRatio = false;
 
 // DOM Elements
 const advToggle = document.getElementById('advToggle');
@@ -136,7 +138,6 @@ const lumpYearEl = document.getElementById('lumpyear');
 const warnEl = document.getElementById('warn');
 const headlineEl = document.getElementById('headline');
 
-// Payout elements
 const payoutEl = document.getElementById('payout');
 const payoutYearEl = document.getElementById('payoutYear');
 const payoutPlanAmountEl = document.getElementById('payoutPlanAmount');
@@ -144,33 +145,28 @@ const payoutStartYearEl = document.getElementById('payoutStartYear');
 const payoutIntervalEl = document.getElementById('payoutInterval');
 const payoutIntervalDaysEl = document.getElementById('payoutIntervalDays');
 
-// Toggle advanced options
 advToggle.onclick = () => {
   const open = advBox.style.display === 'block';
   advBox.style.display = open ? 'none' : 'block';
   advToggle.textContent = open ? 'Erweiterte Optionen ▼' : 'Erweiterte Optionen ▲';
 };
 
-// Enable/disable custom payout interval days input
 payoutIntervalEl.addEventListener('change', function() {
   if (this.value === 'custom') {
     payoutIntervalDaysEl.disabled = false;
-    if (!payoutIntervalDaysEl.value) { // Set a default if empty
+    if (!payoutIntervalDaysEl.value) {
         payoutIntervalDaysEl.value = '30';
     }
   } else {
     payoutIntervalDaysEl.disabled = true;
-    payoutIntervalDaysEl.value = ''; // Clear value when not custom
+    payoutIntervalDaysEl.value = '';
   }
 });
-// Trigger change on load to set initial state of payoutIntervalDaysEl
 payoutIntervalEl.dispatchEvent(new Event('change'));
 
-
 function calc(withTax) {
-  warnEl.textContent = ''; // Clear previous warnings
+  warnEl.textContent = '';
 
-  // Basic inputs
   const rate = parseFloat(rateEl.value) || 0;
   const years = parseInt(yearsEl.value) || 0;
   const annualInterestRate = (parseFloat(intEl.value) || 0) / 100;
@@ -178,7 +174,6 @@ function calc(withTax) {
   const lumpsum = parseFloat(lumpEl.value) || 0;
   const lumpYear = parseInt(lumpYearEl.value) || 0;
 
-  // Payout inputs
   const oneTimePayout = parseFloat(payoutEl.value) || 0;
   const oneTimePayoutYear = parseInt(payoutYearEl.value) || 0;
   const payoutPlanAmount = parseFloat(payoutPlanAmountEl.value) || 0;
@@ -186,7 +181,6 @@ function calc(withTax) {
   const payoutPlanInterval = payoutIntervalEl.value;
   const payoutPlanIntervalDays = parseInt(payoutIntervalDaysEl.value) || 0;
 
-  // Validations
   if (years < 1) { warnEl.textContent = 'Bitte Laufzeit ≥ 1 Jahr eingeben.'; return; }
   if (lumpsum > 0 && (lumpYear < 1 || lumpYear > years)) { warnEl.textContent = 'Einmalzahlung außerhalb der Laufzeit.'; return; }
   if (oneTimePayout > 0 && (oneTimePayoutYear < 1 || oneTimePayoutYear > years)) { warnEl.textContent = 'Einmalige Auszahlung außerhalb der Laufzeit.'; return; }
@@ -199,14 +193,14 @@ function calc(withTax) {
 
   const monthlyInterestRate = annualInterestRate / 12;
   let balance = startCapital;
-  let totalPaidIn = startCapital; // Tracks only actual money invested
+  let totalPaidIn = startCapital; // Actual net sum of money put in/taken out
 
   const labels = [];
-  const cumulativeDepositsData = [];
-  const cumulativeGainData = [];
-  const cumulativeTaxData = [];
+  const cumulativeDepositsData = []; // For blue bar (Einzahlung)
+  const cumulativeGainData = [];     // For green bar (Gewinn)
+  const cumulativeTaxData = [];      // For red bar (Steuer)
 
-  let cumulativeGrossProfitPrevYear = 0;
+  let cumulativeEconomicGrossProfitPrevYear = 0;
   let totalTaxPaid = 0;
 
   for (let y = 1; y <= years; y++) {
@@ -218,64 +212,77 @@ function calc(withTax) {
 
     // 2. One-time payout at the beginning of the year y
     if (oneTimePayout > 0 && y === oneTimePayoutYear) {
-      balance -= oneTimePayout;
-      if (balance < 0) balance = 0; // Prevent balance from going negative
+      const actualPayoutAmount = Math.min(balance, oneTimePayout); // Can't withdraw more than current balance
+      balance -= actualPayoutAmount;
+      totalPaidIn -= actualPayoutAmount; // Reduce totalPaidIn by the amount actually paid out
     }
 
     // 3. Monthly calculations (interest, regular deposits, monthly payout plan withdrawals)
     for (let m = 1; m <= 12; m++) {
-      balance *= (1 + monthlyInterestRate); // Apply interest to current balance
-      balance += rate;                      // Add monthly contribution
-      totalPaidIn += rate;                  // Track contribution
+      balance *= (1 + monthlyInterestRate);
+      balance += rate;
+      totalPaidIn += rate;
 
-      // Monthly payout plan withdrawal
       if (y >= payoutPlanStartYear && payoutPlanAmount > 0 && payoutPlanInterval === 'monthly') {
-        balance -= payoutPlanAmount;
-        if (balance < 0) balance = 0;
+        const actualMonthlyPayout = Math.min(balance, payoutPlanAmount);
+        balance -= actualMonthlyPayout;
+        totalPaidIn -= actualMonthlyPayout;
       }
     }
 
     // 4. Year-end payout plan withdrawals (for 'yearly' and 'custom' intervals)
     if (y >= payoutPlanStartYear && payoutPlanAmount > 0) {
+      let yearlyEquivalentPayout = 0;
       if (payoutPlanInterval === 'yearly') {
-        balance -= payoutPlanAmount;
-        if (balance < 0) balance = 0;
+        yearlyEquivalentPayout = payoutPlanAmount;
       } else if (payoutPlanInterval === 'custom' && payoutPlanIntervalDays > 0) {
-        const numCustomPayoutsInYear = 365 / payoutPlanIntervalDays; // Can be fractional
-        balance -= (payoutPlanAmount * numCustomPayoutsInYear);
-        if (balance < 0) balance = 0;
+        yearlyEquivalentPayout = payoutPlanAmount * (365 / payoutPlanIntervalDays);
+      }
+      
+      if (yearlyEquivalentPayout > 0) {
+        const actualYearlyEquivalentPayout = Math.min(balance, yearlyEquivalentPayout);
+        balance -= actualYearlyEquivalentPayout;
+        totalPaidIn -= actualYearlyEquivalentPayout;
       }
     }
     
-    // Ensure balance doesn't drop below zero after all operations for the year
-    if (balance < 0) balance = 0;
+    // Ensure balance doesn't drop below zero (already implicitly handled by Math.min for payouts)
+    // if (balance < 0) balance = 0; // Should not be strictly necessary
 
     // 5. Calculate profits and taxes for the year
-    const cumulativeGrossProfit = balance - totalPaidIn; // Overall gross profit to date
-    const currentYearGain = cumulativeGrossProfit - cumulativeGrossProfitPrevYear; // Gain made in this year
-
-    const yearTax = withTax ? Math.max(0, currentYearGain * taxRate) : 0;
+    const currentEconomicGrossProfit = balance - totalPaidIn; // True economic gross profit
+    const taxableGainThisYear = currentEconomicGrossProfit - cumulativeEconomicGrossProfitPrevYear;
+    
+    const yearTax = withTax ? Math.max(0, taxableGainThisYear * taxRate) : 0;
     totalTaxPaid += yearTax;
     
-    const cumulativeNetProfit = cumulativeGrossProfit - totalTaxPaid;
-
-    cumulativeGrossProfitPrevYear = cumulativeGrossProfit;
+    cumulativeEconomicGrossProfitPrevYear = currentEconomicGrossProfit;
 
     // Store data for chart
     labels.push('Jahr ' + y);
-    cumulativeDepositsData.push(totalPaidIn);
-    cumulativeGainData.push(withTax ? cumulativeNetProfit : cumulativeGrossProfit);
+    
+    const chartDepositValue = Math.max(0, totalPaidIn); // Blue bar value (not < 0)
+    cumulativeDepositsData.push(chartDepositValue);
+
     if (withTax) {
+      // Green bar is what's left of balance after displayed deposit and total tax
+      const chartNetGainValue = balance - chartDepositValue - totalTaxPaid;
+      cumulativeGainData.push(chartNetGainValue); 
       cumulativeTaxData.push(totalTaxPaid);
+    } else {
+      // Green bar is what's left of balance after displayed deposit
+      const chartGrossGainValue = balance - chartDepositValue;
+      cumulativeGainData.push(chartGrossGainValue);
     }
   }
 
-  // Update headline
+  // Update headline with true economic values
   const finalBalance = balance;
-  const finalTotalPaidIn = labels.length > 0 ? cumulativeDepositsData[cumulativeDepositsData.length - 1] : startCapital;
-  const finalGain = labels.length > 0 ? cumulativeGainData[cumulativeGainData.length - 1] : (finalBalance - startCapital);
+  const finalTrueTotalPaidIn = totalPaidIn; // This is the actual net amount invested/withdrawn
+  const finalEconomicGrossGain = finalBalance - finalTrueTotalPaidIn;
+  const finalEconomicNetGain = finalEconomicGrossGain - totalTaxPaid;
 
-  headlineEl.textContent = `Endkapital: ${fmt(finalBalance)}  Einzahlungen: ${fmt(finalTotalPaidIn)}  Gewinn${withTax ? ' (Netto)' : ''}: ${fmt(finalGain)}`;
+  headlineEl.textContent = `Endkapital: ${fmt(finalBalance)}  Einzahlungen: ${fmt(finalTrueTotalPaidIn)}  Gewinn${withTax ? ' (Netto)' : ''}: ${fmt(withTax ? finalEconomicNetGain : finalEconomicGrossGain)}`;
 
   // Main Chart
   if (chartMain) chartMain.destroy();
@@ -290,20 +297,28 @@ function calc(withTax) {
     type: 'bar',
     data: { labels: labels, datasets: datasetsMain },
     options: {
-      responsive: true, // Already default but good to be explicit
-      // maintainAspectRatio: false, // Set globally
+      responsive: true,
       scales: { y: { beginAtZero: true, stacked: true }, x: { stacked: true } }
     }
   });
 
   // Comparison Chart
   if (chartCompare) chartCompare.destroy();
-  const bank0 = totalPaidIn; // Total paid in is the baseline for 0% interest
+  // For comparison, bank0 should reflect the net sum of money put in, which is finalTrueTotalPaidIn
+  const bank0 = finalTrueTotalPaidIn > 0 ? finalTrueTotalPaidIn : 0; // If net withdrawal, bank0 is 0 for this comparison.
+  
   let tdTotal = startCapital;
-  for (let y = 1; y <= years; y++) {
-    tdTotal *= (1 + 0.02); // 2% interest for Tagesgeld
-    tdTotal += (rate * 12); // Annual contributions
+  // This Tagesgeld calculation should ideally also consider lumpsums/payouts for a fair comparison,
+  // but for simplicity, it's often calculated on initial capital + regular rates.
+  // For now, keeping it as is, but this could be a future enhancement.
+  for (let yCalc = 1; yCalc <= years; yCalc++) {
+    // A more accurate tdTotal would factor in lumpsums and withdrawals if they happened.
+    // However, the original logic was simpler:
+    tdTotal += (rate * 12); // Add deposits for the year
+    tdTotal *= (1 + 0.02); // Apply interest
+    // This order (deposit then interest) is common for simplified comparisons.
   }
+
   const compareData = [finalBalance, tdTotal, bank0];
   const compareLabels = ['ETF', 'Tagesgeld 2%', 'Bank 0%'];
   chartCompare = new Chart(document.getElementById('compare').getContext('2d'), {
@@ -314,14 +329,12 @@ function calc(withTax) {
     },
     options: {
       responsive: true,
-      // maintainAspectRatio: false, // Set globally
       plugins: { legend: { display: false } },
       scales: { y: { beginAtZero: true } }
     }
   });
 }
-// Initial calculation on page load if desired (e.g. with default values)
-// calc(false); 
+// calc(false); // Optional: initial calculation on page load
 </script>
 </body>
 </html>
