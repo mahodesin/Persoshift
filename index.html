@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="utf-8">
-  <title>PersoShift ETF-Rechner</title>
+  <title>PersoShift ETF‑Rechner</title>
 
   <!-- Schrift & Chart.js -->
   <link rel="preconnect" href="https://fonts.gstatic.com">
@@ -20,115 +20,26 @@
       --border: #e0e0e0;
     }
     *, *::before, *::after { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background-color: var(--bg);
-      color: var(--text);
-      font-family: 'Inter', sans-serif;
-      line-height: 1.6;
-    }
-    .container {
-      max-width: 760px;
-      margin: 2rem auto;
-      padding: 0 1rem;
-    }
-    h1 {
-      text-align: center;
-      font-size: 2.4rem;
-      margin-bottom: 1.5rem;
-    }
-    .card {
-      background-color: var(--card-bg);
-      padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-      margin-bottom: 2rem;
-    }
-    label {
-      display: block;
-      margin: 0.75rem 0 0.25rem;
-      font-size: 1rem;
-      color: var(--text);
-    }
-    input[type="number"], select {
-      width: 100%;
-      padding: 0.6rem;
-      font-size: 1rem;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      transition: border-color 0.3s;
-      background-color: #fff;
-    }
-    input[type="number"]:focus, select:focus {
-      border-color: var(--primary);
-      outline: none;
-    }
-    .row {
-      display: flex;
-      gap: 1rem;
-    }
-    .btn {
-      display: inline-block;
-      min-width: 200px;
-      padding: 0.75rem 2rem;
-      margin: 1rem auto;
-      font-size: 1rem;
-      font-weight: 600;
-      color: #fff;
-      background-color: var(--primary);
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background-color 0.3s;
-    }
-    .btn:hover {
-      background-color: var(--primary-hover);
-    }
-    #advToggle {
-      display: block;
-      margin: 1rem 0;
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: var(--primary);
-      cursor: pointer;
-    }
-    #advanced {
-      display: none;
-      background-color: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1rem;
-      margin-bottom: 1rem;
-    }
-    #warn {
-      color: #c00;
-      font-size: 0.9rem;
-      min-height: 1.2em;
-      margin-top: 0.5rem;
-    }
-    h2, h3 {
-      text-align: center;
-      margin-top: 2rem;
-      font-size: 1.5rem;
-      color: var(--text);
-    }
-    canvas {
-      display: block;
-      width: 100% !important;
-      max-width: 760px;
-      height: 600px !important;
-      margin: 1.5rem auto;
-      background-color: var(--card-bg);
-      border-radius: 12px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.05);
-    }
+    body { margin:0; background-color:var(--bg); color:var(--text); font-family:'Inter',sans-serif; line-height:1.6; }
+    .container { max-width:760px; margin:2rem auto; padding:0 1rem; }
+    h1 { text-align:center; font-size:2.4rem; margin-bottom:1.5rem; }
+    .card { background:var(--card-bg); padding:2rem; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.1); margin-bottom:2rem; }
+    label { display:block; margin:0.75rem 0 0.25rem; font-size:1rem; color:var(--text); }
+    input[type="number"], select { width:100%; padding:0.6rem; font-size:1rem; border:1px solid var(--border); border-radius:8px; transition:border-color 0.3s; }
+    input:focus, select:focus { border-color:var(--primary); outline:none; }
+    .row { display:flex; gap:1rem; margin-top:0.5rem; }
+    .btn { display:block; width:100%; padding:0.75rem; margin:1rem 0; font-size:1rem; font-weight:600; color:#fff; background:var(--primary); border:none; border-radius:8px; cursor:pointer; transition:background 0.3s; }
+    .btn:hover { background:var(--primary-hover); }
+    #advToggle { display:block; margin:1rem 0; font-size:0.95rem; font-weight:600; color:var(--primary); cursor:pointer; }
+    #advanced { display:none; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:1rem; margin-bottom:1rem; }
+    #warn { color:#c00; font-size:0.9rem; min-height:1.2em; margin-top:0.5rem; }
+    h2,h3 { text-align:center; margin-top:2rem; font-size:1.5rem; }
+    canvas { display:block; width:100% !important; max-width:760px; height:600px !important; margin:1.5rem auto; background:var(--card-bg); border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.05); }
   </style>
 </head>
 <body>
-
 <div class="container">
-  <h1>PersoShift ETF-Rechner</h1>
-
+  <h1>PersoShift ETF‑Rechner</h1>
   <div class="card">
     <label>Monatsrate (€)
       <input id="rate" type="number" value="50" min="0">
@@ -136,18 +47,14 @@
     <label>Laufzeit (Jahre)
       <input id="years" type="number" value="20" min="1">
     </label>
-    <label>Jahresrendite (%) <span style="font-weight:400; color: var(--muted);">(S&P 500 seit Marktstart ca. 10 % p.a.)</span>
+    <label>Jahresrendite (%) <span style="font-size:0.9rem;color:var(--muted);">(S&P 500 seit Marktstart ca. 10 % p.a.)</span>
       <input id="interest" type="number" value="10" step="0.1" min="0">
     </label>
-
     <div id="advToggle">Erweiterte Optionen ▼</div>
     <div id="advanced">
-      <!-- Startkapital -->
       <label>Startkapital (€)
         <input id="start" type="number" value="0" min="0">
       </label>
-
-      <!-- Einmalzahlung im Jahr -->
       <div class="row">
         <label style="flex:1">Einmalzahlung (€)
           <input id="lumpsum" type="number" value="0" min="0">
@@ -156,8 +63,6 @@
           <input id="lumpyear" type="number" value="1" min="1">
         </label>
       </div>
-
-      <!-- Einmalige Auszahlung im Jahr -->
       <div class="row">
         <label style="flex:1">Auszahlung (€)
           <input id="payout" type="number" value="0" min="0">
@@ -166,325 +71,82 @@
           <input id="payoutYear" type="number" value="1" min="1">
         </label>
       </div>
-
-      <!-- Auszahlplan Betrag -->
-      <label>Auszahlplan Betrag (€)
-        <input id="payoutPlan" type="number" value="0" min="0">
-      </label>
-
-      <!-- Auszahlplan: Ab Jahr + Intervall + Tage -->
       <div class="row">
-        <label style="flex:1">Auszahlplan: Ab Jahr
-          <input id="payoutStartYear" type="number" value="1" min="1">
-        </label>
-        <label style="flex:1">Intervall
-          <select id="payoutInterval">
-            <option>Monatlich</option>
-            <option>Jährlich</option>
-            <option>Tage</option>
-          </select>
+        <label style="flex:1">Auszahlplan Betrag (€)
+          <input id="payoutPlanAmount" type="number" value="0" min="0">
         </label>
       </div>
-      <label>Auszahlintervall in Tage
-        <input id="payoutDays" type="number" placeholder="Auszahlintervall in Tage" style="color:#888;">
-      </label>
+      <div class="row">
+        <div style="flex:1">
+          <label>Auszahlplan: Ab Jahr
+            <input id="payoutStartYear" type="number" value="1" min="1">
+          </label>
+        </div>
+        <div style="flex:1">
+          <label>Intervall
+            <select id="payoutInterval">
+              <option value="monthly">Monatlich</option>
+              <option value="yearly">Jährlich</option>
+              <option value="custom">Eigenes Intervall</option>
+            </select>
+          </label>
+        </div>
+        <div style="flex:1">
+          <label>Auszahlintervall in Tage
+            <input id="payoutIntervalDays" type="number" placeholder="Auszahlintervall in Tage" disabled>
+          </label>
+        </div>
+      </div>
     </div>
-
+      <div class="row">
+        <label style="flex:1">Auszahlung (€)
+          <input id="payout" type="number" value="0" min="0">
+        </label>
+        <label style="flex:1">im Jahr
+          <input id="payoutYear" type="number" value="1" min="1">
+        </label>
+      </div>
+      <div class="row">
+        <div style="flex:1">
+          <label>Auszahlplan: Ab Jahr
+            <input id="payoutStartYear" type="number" value="1" min="1">
+          </label>
+        </div>
+        <div style="flex:1">
+          <label>Intervall
+            <select id="payoutInterval">
+              <option value="monthly">Monatlich</option>
+              <option value="yearly">Jährlich</option>
+              <option value="custom">Eigenes Intervall</option>
+            </select>
+          </label>
+        </div>
+        <div style="flex:1">
+          <label>Auszahlintervall in Tage
+            <input id="payoutIntervalDays" type="number" placeholder="Auszahlintervall in Tage" disabled>
+          </label>
+        </div>
+      </div>
+    </div>
     <button class="btn" onclick="calc(false)">Berechnen (Brutto)</button>
-    <button class="btn" onclick="calc(true)">Berechnen (Netto [abzgl. 26,375 % in DE])</button>
+    <button class="btn" onclick="calc(true)">Berechnen (Netto [abzgl. 26,375 % in DE])</button>
     <div id="warn"></div>
   </div>
-
   <h2 id="headline"></h2>
   <canvas id="chart" width="800" height="600"></canvas>
-
   <h3>Vergleich (Endkapital)</h3>
   <canvas id="compare" width="800" height="600"></canvas>
 </div>
-
 <script>
-  const taxRate = 0.26375; // 26,375 %
-  let chartMain, chartCompare;
-
-  // Globale Chart.js Defaults
-  Chart.defaults.font.family = 'Inter, sans-serif';
-  Chart.defaults.font.size   = 16;
-
-  // Dropdown Toggle
-  const advToggle = document.getElementById('advToggle');
-  const advBox = document.getElementById('advanced');
-  advToggle.onclick = () => {
-    const open = advBox.style.display === 'block';
-    advBox.style.display = open ? 'none' : 'block';
-    advToggle.textContent = open ? 'Erweiterte Optionen ▼' : 'Erweiterte Optionen ▲';
-  };
-
-  // Formatierungsfunktion
-  const fmt = n => n.toLocaleString('de-DE', { style:'currency', currency:'EUR', maximumFractionDigits:0 });
-
-  // Element-References
-  const rateEl = document.getElementById('rate');
-  const yearsEl = document.getElementById('years');
-  const intEl = document.getElementById('interest');
-  const startEl = document.getElementById('start');
-  const lumpEl = document.getElementById('lumpsum');
-  const lumpYearEl = document.getElementById('lumpyear');
-  const payoutEl = document.getElementById('payout');
-  const payoutYearEl = document.getElementById('payoutYear');
-  const payoutPlanEl = document.getElementById('payoutPlan');
-  const payoutStartYearEl = document.getElementById('payoutStartYear');
-  const payoutIntervalEl = document.getElementById('payoutInterval');
-  const payoutDaysEl = document.getElementById('payoutDays');
-  const warnEl = document.getElementById('warn');
-  const headlineEl = document.getElementById('headline');
-
-  function calc(withTax) {
-    warnEl.textContent = '';
-
-    const rate = parseFloat(rateEl.value) || 0;
-    const years = parseInt(yearsEl.value) || 0;
-    const annual = (parseFloat(intEl.value) || 0) / 100;
-    const start = parseFloat(startEl.value) || 0;
-    const lumpsum = parseFloat(lumpEl.value) || 0;
-    const lumpYear = parseInt(lumpYearEl.value) || 0;
-    const payout = parseFloat(payoutEl.value) || 0;
-    const payoutYear = parseInt(payoutYearEl.value) || 0;
-    const payoutPlan = parseFloat(payoutPlanEl.value) || 0;
-    const payoutStart = parseInt(payoutStartYearEl.value) || 0;
-    const payoutInterval = payoutIntervalEl.value;        // "Monatlich" | "Jährlich" | "Tage"
-    const payoutDays = parseInt(payoutDaysEl.value) || 0;
-
-    if (years < 1) {
-      warnEl.textContent = 'Bitte Laufzeit ≥ 1 Jahr eingeben';
-      return;
-    }
-    if (lumpsum > 0 && (lumpYear < 1 || lumpYear > years)) {
-      warnEl.textContent = 'Einmalzahlung außerhalb der Laufzeit';
-      return;
-    }
-    if (payout > 0 && (payoutYear < 1 || payoutYear > years)) {
-      warnEl.textContent = 'Auszahlung außerhalb der Laufzeit';
-      return;
-    }
-    if (payoutPlan > 0 && (payoutStart < 1 || payoutStart > years)) {
-      warnEl.textContent = 'Auszahlplan-Startjahr außerhalb der Laufzeit';
-      return;
-    }
-    if (payoutInterval === 'Tage' && payoutDays < 1) {
-      warnEl.textContent = 'Bitte Auszahlintervall in Tagen eingeben';
-      return;
-    }
-
-    const monthlyRate = annual / 12;
-    let balance = start;
-    let paidTotal = start;
-
-    const labels = [];
-    const depCum = [];
-    const gainCum = [];
-    const taxCum = [];
-
-    let grossPrev = 0;
-    let taxTotal = 0;
-
-    for (let y = 1; y <= years; y++) {
-      // Einmalzahlung: Abzug am Jahresanfang
-      if (lumpsum > 0 && y === lumpYear) {
-        balance -= lumpsum;
-        paidTotal -= lumpsum;
-      }
-      // Auszahlung: Abzug am Jahresanfang
-      if (payout > 0 && y === payoutYear) {
-        balance -= payout;
-      }
-      // Auszahlplan: Wenn Intervall "Jährlich" und Startjahr <= y
-      if (payoutPlan > 0 && payoutInterval === 'Jährlich' && y >= payoutStart) {
-        balance -= payoutPlan;
-      }
-      // Für "Tage" und "Monatlich" werden Berechnungen unten in der Monats-Schleife vorgenommen.
-
-      // Monatsweise Kalkulation
-      for (let m = 1; m <= 12; m++) {
-        // Zinsen auf den Vormonats-Saldo
-        balance *= (1 + monthlyRate);
-        // Rate am Monatsende einzahlen
-        balance += rate;
-        paidTotal += rate;
-
-        // Auszahlplan: Monatlich
-        if (payoutPlan > 0 && payoutInterval === 'Monatlich' && y >= payoutStart) {
-          balance -= payoutPlan;
-        }
-        // Auszahlplan: Alle x Tage (Annäherung: jeder Monat = 30 Tage)
-        if (payoutPlan > 0 && payoutInterval === 'Tage') {
-          const daysSinceStart = (y - 1) * 365 + (m - 1) * 30;
-          if (daysSinceStart >= (payoutStart - 1) * 365 && daysSinceStart % payoutDays === 0) {
-            balance -= payoutPlan;
-          }
-        }
-      }
-
-      const gross = balance - paidTotal;                      // kumulierter Bruttogewinn bis Jahr y
-      const yearGross = gross - grossPrev;                     // Bruttogewinn dieses Jahres
-      let yearTax = 0;
-      if (withTax && yearGross > 0) {
-        yearTax = yearGross * taxRate;
-        yearTax = Math.max(0, yearTax);
-        taxTotal += yearTax;
-      }
-      const net = gross - taxTotal;
-      grossPrev = gross;
-
-      labels.push('Jahr ' + y);
-      depCum.push(paidTotal);
-      gainCum.push(Math.max(0, net));
-      taxCum.push(taxTotal);
-    }
-
-    const finalGross = balance - paidTotal;
-    const finalTax = withTax ? Math.max(0, finalGross) * taxRate : 0;
-    const finalNet = finalGross - finalTax;
-    const endDisplay = withTax ? paidTotal + finalNet : balance;
-
-    headlineEl.textContent =
-      `Endkapital: ${fmt(endDisplay)}   Einzahlungen: ${fmt(paidTotal)}   Gewinn${withTax ? ' (Netto)' : ''}: ${fmt(withTax ? finalNet : finalGross)}`;
-
-    // Haupt-Chart
-    if (chartMain) chartMain.destroy();
-    chartMain = new Chart(document.getElementById('chart').getContext('2d'), {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [
-          {
-            label: 'Einzahlung kumuliert',
-            data: depCum,
-            backgroundColor: 'rgba(101,115,255,0.7)',
-            stack: 's',
-            maxBarThickness: 50
-          },
-          {
-            label: `Gewinn kumuliert${withTax ? ' (Netto)' : ''}`,
-            data: gainCum,
-            backgroundColor: 'rgba(46,204,113,0.7)',
-            stack: 's',
-            maxBarThickness: 50
-          },
-          ...(withTax ? [{
-            label: 'Steuer kumuliert',
-            data: taxCum,
-            backgroundColor: 'rgba(231,76,60,0.7)',
-            stack: 's',
-            maxBarThickness: 50
-          }] : [])
-        ]
-      },
-      options: {
-        responsive: false,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: { font: { size: 14 } }
-          },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                let label = context.dataset.label || '';
-                if (label) label += ': ';
-                if (context.parsed.y !== null) {
-                  label += fmt(context.parsed.y);
-                }
-                return label;
-              }
-            }
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: {
-              font: { size: 16 },
-              callback: v => v.toLocaleString('de-DE')
-            }
-          },
-          x: {
-            ticks: {
-              font: { size: 14 },
-              autoSkip: true,
-              maxRotation: 45,
-              minRotation: 0
-            }
-          }
-        }
-      }
-    });
-
-    // Vergleichs-Chart
-    if (chartCompare) chartCompare.destroy();
-    const bank0 = paidTotal;
-    let tdTotal = start;
-    let tdPaid = start;
-    if (lumpsum > 0 && 1 === lumpYear) {
-      tdTotal += lumpsum;
-      tdPaid += lumpsum;
-    }
-    for (let y = 1; y <= years; y++) {
-      tdTotal *= (1 + 0.02);
-      tdTotal += rate * 12;
-      tdPaid += rate * 12;
-      if (lumpsum > 0 && y + 1 === lumpYear) {
-        tdTotal += lumpsum;
-        tdPaid += lumpsum;
-      }
-    }
-    const compareData = [withTax ? paidTotal + finalNet : balance, tdTotal, bank0];
-    const compareLabels = ['ETF', 'Tagesgeld 2 %', 'Bank 0 %'];
-
-    chartCompare = new Chart(document.getElementById('compare').getContext('2d'), {
-      type: 'bar',
-      data: {
-        labels: compareLabels,
-        datasets: [{
-          data: compareData,
-          backgroundColor: ['rgba(46,204,113,0.7)', 'rgba(52,152,219,0.7)', 'rgba(149,165,166,0.7)'],
-          maxBarThickness: 50
-        }]
-      },
-      options: {
-        responsive: false,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                let label = context.label || '';
-                if (label) label += ': ';
-                if (context.parsed.y !== null) {
-                  label += fmt(context.parsed.y);
-                }
-                return label;
-              }
-            }
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: {
-              font: { size: 16 },
-              callback: v => v.toLocaleString('de-DE')
-            }
-          },
-          x: {
-            ticks: { font: { size: 14 } }
-          }
-        }
-      }
-    });
-  }
+const taxRate=0.26375; let chartMain,chartCompare;
+Chart.defaults.font.family='Inter, sans-serif'; Chart.defaults.font.size=16;
+const advToggle=document.getElementById('advToggle'); const advBox=document.getElementById('advanced');
+advToggle.onclick=()=>{const open=advBox.style.display==='block';advBox.style.display=open?'none':'block';advToggle.textContent=open?'Erweiterte Optionen ▼':'Erweiterte Optionen ▲';};
+const fmt=n=>n.toLocaleString('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0});
+const rateEl=document.getElementById('rate'),yearsEl=document.getElementById('years'),intEl=document.getElementById('interest'),startEl=document.getElementById('start'),lumpEl=document.getElementById('lumpsum'),lumpYearEl=document.getElementById('lumpyear'),warnEl=document.getElementById('warn'),headlineEl=document.getElementById('headline');
+function calc(withTax){warnEl.textContent='';const rate=parseFloat(rateEl.value)||0;const years=parseInt(yearsEl.value)||0;const annual=(parseFloat(intEl.value)||0)/100;const start=parseFloat(startEl.value)||0;const lumpsum=parseFloat(lumpEl.value)||0;const lumpYear=parseInt(lumpYearEl.value)||0; if(years<1){warnEl.textContent='Bitte Laufzeit ≥ 1 Jahr eingeben';return;}if(lumpsum>0&&(lumpYear<1||lumpYear>years)){warnEl.textContent='Einmalzahlung außerhalb der Laufzeit';return;} const monthlyRate=annual/12; let balance=start; let paidTotal=start; const labels=[],depCum=[],gainCum=[],taxCum=[]; let grossPrev=0,taxTotal=0; for(let y=1;y<=years;y++){ if(lumpsum>0&&y===lumpYear){balance+=lumpsum;paidTotal+=lumpsum;} for(let m=1;m<=12;m++){balance*=(1+monthlyRate);balance+=rate;paidTotal+=rate;} const gross=balance-paidTotal; const yearTax=withTax?Math.max(0,(gross-grossPrev)*taxRate):0;taxTotal+=yearTax; const net=gross-taxTotal; grossPrev=gross; labels.push('Jahr '+y); depCum.push(paidTotal); gainCum.push(net); taxCum.push(taxTotal);} const finalGross=balance-paidTotal; const finalTax=withTax?finalGross*taxRate:0; const finalNet=finalGross-finalTax; const endDisplay=withTax?paidTotal+finalNet:balance; headlineEl.textContent=`Endkapital: ${fmt(endDisplay)}   Einzahlungen: ${fmt(paidTotal)}   Gewinn${withTax?' (Netto)':''}: ${fmt(withTax?finalNet:finalGross)}`;
+  if(chartMain)chartMain.destroy();chartMain=new Chart(document.getElementById('chart').getContext('2d'),{type:'bar',data:{labels,datasets:[{label:'Einzahlung kumuliert',data:depCum,backgroundColor:'rgba(101,115,255,0.7)',stack:'s',maxBarThickness:50},{label:`Gewinn kumuliert${withTax?' (Netto)':''}`,data:gainCum,backgroundColor:'rgba(46,204,113,0.7)',stack:'s',maxBarThickness:50},...(withTax?[{label:'Steuer kumuliert',data:taxCum,backgroundColor:'rgba(231,76,60,0.7)',stack:'s',maxBarThickness:50}]:[])]},options:{responsive:false,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{y:{beginAtZero:true},x:{}}}});
+  if(chartCompare)chartCompare.destroy();const bank0=paidTotal;let tdTotal=start,tdPaid=start;for(let y=1;y<=years;y++){tdTotal*=(1+0.02);tdTotal+=rate*12;tdPaid+=rate*12;}const compareData=[withTax?paidTotal+finalNet:balance,tdTotal,bank0],compareLabels=['ETF', 'Tagesgeld 2%', 'Bank 0%'];chartCompare=new Chart(document.getElementById('compare').getContext('2d'),{type:'bar',data:{labels:compareLabels,datasets:[{data:compareData,backgroundColor:['rgba(46,204,113,0.7)','rgba(52,152,219,0.7)','rgba(149,165,166,0.7)'],maxBarThickness:50}]},options:{responsive:false,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true},x:{}}}});} 
 </script>
-
 </body>
 </html>
