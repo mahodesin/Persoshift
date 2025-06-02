@@ -20,6 +20,7 @@
       --border: #e0e0e0;
       --danger: #e74c3c;
       --success: #2ecc71;
+      --payout-color: #f39c12; /* Orange for payouts */
     }
     *, *::before, *::after { box-sizing: border-box; }
     body { margin:0; background-color:var(--bg); color:var(--text); font-family:'Inter',sans-serif; line-height:1.6; }
@@ -27,9 +28,10 @@
     h1 { text-align:center; font-size:2.4rem; margin-bottom:1.5rem; color: var(--primary); }
     .card { background:var(--card-bg); padding:2rem; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.1); margin-bottom:2rem; }
     label { display:block; margin:0.75rem 0 0.25rem; font-size:1rem; color:var(--text); font-weight: 500; }
-    input[type="number"], select { width:100%; padding:0.6rem; font-size:1rem; border:1px solid var(--border); border-radius:8px; transition:border-color 0.3s; background-color: #fdfdff; }
+    input[type="number"], select, input[type="checkbox"] { width:100%; padding:0.6rem; font-size:1rem; border:1px solid var(--border); border-radius:8px; transition:border-color 0.3s; background-color: #fdfdff; }
+    input[type="checkbox"] { width: auto; height: auto; margin-right: 0.5rem; vertical-align: middle;}
     input:focus, select:focus { border-color:var(--primary); outline:none; box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2); }
-    .row { display:flex; flex-wrap: wrap; gap:1rem; margin-top:0.5rem; align-items: flex-end; /* Align items for button height */ }
+    .row { display:flex; flex-wrap: wrap; gap:1rem; margin-top:0.5rem; align-items: flex-end; }
     .row > * { flex: 1; min-width: 120px; }
     .btn { display:block; width:100%; padding:0.75rem; margin:1rem 0 0.25rem; font-size:1rem; font-weight:600; color:#fff; background:var(--primary); border:none; border-radius:8px; cursor:pointer; transition:background 0.3s; }
     .btn:hover { background:var(--primary-hover); }
@@ -37,8 +39,10 @@
     #advToggle { display:block; margin:1.5rem 0 1rem; font-size:0.95rem; font-weight:600; color:var(--primary); cursor:pointer; text-align: left; }
     #advanced { display:none; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:1.5rem; margin-bottom:1rem; margin-top: 0.5rem; }
     #warn { color:var(--danger); font-size:0.9rem; min-height:1.2em; margin-top:0.5rem; text-align: center; font-weight: 500;}
-    h2,h3 { text-align:center; margin-top:2rem; font-size:1.5rem; color: var(--text); }
-    canvas { display:block; width:100% !important; max-width:760px; height:auto !important; aspect-ratio: 16 / 9; max-height: 400px; margin:1.5rem auto; background:var(--card-bg); border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.05); }
+    h2 { font-size: 1.3rem; text-align: left; margin-bottom: 0.5rem;} /* Adjusted headline style */
+    h2 span { display: block; font-size: 1rem; font-weight: normal; color: var(--muted); margin-top: 0.2rem;} /* For sub-lines in headline */
+    h3 { text-align:center; margin-top:2rem; font-size:1.5rem; color: var(--text); }
+    canvas { display:block; width:100% !important; max-width:760px; height:auto !important; aspect-ratio: 16 / 9; max-height: 450px; /* Increased max-height for negative bars */ margin:1.5rem auto; background:var(--card-bg); border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.05); }
     
     .interest-rate-group { display: flex; gap: 1rem; align-items: center; }
     .interest-rate-group select { flex-grow: 1; }
@@ -54,13 +58,21 @@
     .remove-btn {
       background-color: var(--danger); color: white; border: none; border-radius: 4px;
       padding: 0.3rem 0.6rem; font-size: 0.8rem; cursor: pointer;
-      height: fit-content; /* Align with bottom of inputs */
-      align-self: center; /* Vertically center if row items have different heights */
+      height: fit-content; 
+      align-self: center; 
       margin-left: 0.5rem;
     }
     .remove-btn:hover { background-color: #c0392b; }
     .dynamic-entry-row { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed var(--border); display: flex; gap: 1rem; align-items: flex-end;}
     .dynamic-entry-row > div { flex:1; }
+    .inline-label { display: inline; margin-left: 0.25rem; font-weight: normal;}
+    .form-group { margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+    .form-group:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0;}
+    .headline-item { margin-bottom: 0.3rem; font-size: 1.1rem; }
+    .headline-value { font-weight: 600; color: var(--primary); }
+    .headline-sub-value { color: var(--text); }
+
+
   </style>
 </head>
 <body>
@@ -90,70 +102,88 @@
 
     <div id="advToggle">Erweiterte Optionen ▼</div>
     <div id="advanced">
-      <label for="start">Startkapital (€)</label>
-      <input id="start" type="number" value="0" min="0">
+      <div class="form-group">
+        <label for="start">Startkapital (€)</label>
+        <input id="start" type="number" value="0" min="0">
+      </div>
 
-      <div id="lumpsumEntriesContainer">
-        <div class="row main-entry-row">
-          <div>
-            <label for="lumpsum">Einmalzahlung (€)</label>
-            <input id="lumpsum" type="number" value="0" min="0" class="lumpsum-amount">
-          </div>
-          <div>
-            <label for="lumpyear">Einmalzahlung im Jahr</label>
-            <input id="lumpyear" type="number" value="1" min="1" class="lumpsum-year">
-          </div>
+      <div class="form-group">
+        <h4 style="margin-bottom: 0.5rem; margin-top:0; font-weight:600; color:var(--primary);">Anpassung Monatsrate</h4>
+        <div>
+            <input type="checkbox" id="stopMonthlyRateEnable">
+            <label for="stopMonthlyRateEnable" class="inline-label">Monatsrate beenden?</label>
+        </div>
+        <div id="stopMonthlyRateYearContainer" style="display:none; margin-top:0.5rem;">
+            <label for="stopMonthlyRateYear">Monatsrate stoppen ab Jahr:</label>
+            <input type="number" id="stopMonthlyRateYear" min="1" value="10"> 
         </div>
       </div>
-      <button type="button" id="addLumpsumBtn" class="add-btn">+</button> <small>Weitere Einmalzahlung hinzufügen</small>
-
-      <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid var(--border);">
-      <h4 style="margin-bottom: 0.5rem; margin-top:0; font-weight:600; color:var(--primary);">Auszahlungen</h4>
-
-      <div id="oneTimePayoutEntriesContainer">
-         <div class="row main-entry-row">
+      
+      <div class="form-group">
+        <h4 style="margin-bottom: 0.5rem; margin-top:0; font-weight:600; color:var(--primary);">Einmalzahlungen</h4>
+        <div id="lumpsumEntriesContainer">
+          <div class="row main-entry-row">
             <div>
-              <label for="payout">Einmalige Auszahlung (€)</label>
-              <input id="payout" type="number" value="0" min="0" class="payout-amount">
+              <label for="lumpsum">Einmalzahlung (€)</label>
+              <input id="lumpsum" type="number" value="0" min="0" class="lumpsum-amount">
             </div>
             <div>
-              <label for="payoutYear">Auszahlung im Jahr</label>
-              <input id="payoutYear" type="number" value="1" min="1" class="payout-year">
+              <label for="lumpyear">Einmalzahlung im Jahr</label>
+              <input id="lumpyear" type="number" value="1" min="1" class="lumpsum-year">
             </div>
+          </div>
         </div>
+        <button type="button" id="addLumpsumBtn" class="add-btn">+</button> <small>Weitere Einmalzahlung hinzufügen</small>
       </div>
-      <button type="button" id="addOneTimePayoutBtn" class="add-btn">+</button> <small>Weitere einmalige Auszahlung hinzufügen</small>
 
-      <div class="row" style="margin-top: 1rem;"> <div>
-            <label for="payoutPlanAmount">Auszahlplan Betrag (€)</label>
-            <input id="payoutPlanAmount" type="number" value="0" min="0">
+      <div class="form-group">
+        <h4 style="margin-bottom: 0.5rem; margin-top:0; font-weight:600; color:var(--primary);">Auszahlungen</h4>
+        <div id="oneTimePayoutEntriesContainer">
+           <div class="row main-entry-row">
+              <div>
+                <label for="payout">Einmalige Auszahlung (€)</label>
+                <input id="payout" type="number" value="0" min="0" class="payout-amount">
+              </div>
+              <div>
+                <label for="payoutYear">Auszahlung im Jahr</label>
+                <input id="payoutYear" type="number" value="1" min="1" class="payout-year">
+              </div>
+          </div>
+        </div>
+        <button type="button" id="addOneTimePayoutBtn" class="add-btn">+</button> <small>Weitere einmalige Auszahlung hinzufügen</small>
+
+        <div class="row" style="margin-top: 1.5rem;"> 
+          <div>
+              <label for="payoutPlanAmount">Auszahlplan Betrag (€)</label>
+              <input id="payoutPlanAmount" type="number" value="0" min="0">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="payoutStartYear">Auszahlplan: Ab Jahr</label>
+            <input id="payoutStartYear" type="number" value="1" min="1">
+          </div>
+          <div>
+            <label for="payoutInterval">Auszahlplan: Intervall</label>
+            <select id="payoutInterval">
+              <option value="monthly">Monatlich</option>
+              <option value="yearly">Jährlich</option>
+              <option value="custom">Eigenes Intervall</option>
+            </select>
+          </div>
+          <div>
+            <label for="payoutIntervalDays">Auszahlintervall (Tage)</label>
+            <input id="payoutIntervalDays" type="number" placeholder="Tage" disabled>
+          </div>
         </div>
       </div>
-      <div class="row">
-        <div>
-          <label for="payoutStartYear">Auszahlplan: Ab Jahr</label>
-          <input id="payoutStartYear" type="number" value="1" min="1">
-        </div>
-        <div>
-          <label for="payoutInterval">Auszahlplan: Intervall</label>
-          <select id="payoutInterval">
-            <option value="monthly">Monatlich</option>
-            <option value="yearly">Jährlich</option>
-            <option value="custom">Eigenes Intervall</option>
-          </select>
-        </div>
-        <div>
-          <label for="payoutIntervalDays">Auszahlintervall (Tage)</label>
-          <input id="payoutIntervalDays" type="number" placeholder="Tage" disabled>
-        </div>
-      </div>
-    </div> <button class="btn" onclick="calc(false)">Berechnen (Brutto)</button>
+    </div> 
+    <button class="btn" onclick="calc(false)">Berechnen (Brutto)</button>
     <button class="btn" onclick="calc(true)">Berechnen (Netto)</button>
     <p class="tax-note">Nettoberechnung abzgl. 26,375% Kapitalertragsteuer + Soli (DE).</p>
     <div id="warn"></div>
   </div>
-  <h2 id="headline"></h2>
-  <canvas id="chart"></canvas>
+  <div id="headline"></div> <canvas id="chart"></canvas>
   <h3>Vergleich (Endkapital)</h3>
   <canvas id="compare"></canvas>
 </div>
@@ -172,21 +202,21 @@ const fmt = n => n.toLocaleString('de-DE', { style: 'currency', currency: 'EUR',
 
 const rateEl = document.getElementById('rate');
 const yearsEl = document.getElementById('years');
-// Interest Rate Elements
 const interestRatePresetEl = document.getElementById('interestRatePreset');
 const interestCustomEl = document.getElementById('interestCustom');
-
 const startEl = document.getElementById('start');
 const warnEl = document.getElementById('warn');
 const headlineEl = document.getElementById('headline');
 
-// Payout Plan Elements
+const stopMonthlyRateEnableEl = document.getElementById('stopMonthlyRateEnable');
+const stopMonthlyRateYearContainerEl = document.getElementById('stopMonthlyRateYearContainer');
+const stopMonthlyRateYearEl = document.getElementById('stopMonthlyRateYear');
+
 const payoutPlanAmountEl = document.getElementById('payoutPlanAmount');
 const payoutStartYearEl = document.getElementById('payoutStartYear');
 const payoutIntervalEl = document.getElementById('payoutInterval');
 const payoutIntervalDaysEl = document.getElementById('payoutIntervalDays');
 
-// Containers for dynamic entries
 const lumpsumEntriesContainer = document.getElementById('lumpsumEntriesContainer');
 const oneTimePayoutEntriesContainer = document.getElementById('oneTimePayoutEntriesContainer');
 
@@ -197,17 +227,18 @@ advToggle.onclick = () => {
 };
 
 interestRatePresetEl.addEventListener('change', function() {
+  interestCustomEl.style.display = this.value === 'custom' ? 'block' : 'none';
   if (this.value === 'custom') {
-    interestCustomEl.style.display = 'block';
     interestCustomEl.focus();
-     if (!interestCustomEl.value) interestCustomEl.value = "7.6"; // Default custom value
-  } else {
-    interestCustomEl.style.display = 'none';
+    if (!interestCustomEl.value) interestCustomEl.value = "7.6";
   }
 });
-// Trigger change on load for interest preset
 interestRatePresetEl.dispatchEvent(new Event('change'));
 
+stopMonthlyRateEnableEl.addEventListener('change', function() {
+    stopMonthlyRateYearContainerEl.style.display = this.checked ? 'block' : 'none';
+});
+stopMonthlyRateYearContainerEl.style.display = stopMonthlyRateEnableEl.checked ? 'block' : 'none';
 
 payoutIntervalEl.addEventListener('change', function() {
   payoutIntervalDaysEl.disabled = this.value !== 'custom';
@@ -219,55 +250,28 @@ payoutIntervalEl.addEventListener('change', function() {
 });
 payoutIntervalEl.dispatchEvent(new Event('change'));
 
-// Function to add dynamic entry rows
-function addDynamicEntry(container, typeClassAmount, typeClassYear, entryText) {
+function addDynamicEntry(container, typeClassAmount, typeClassYear) {
     const newEntryRow = document.createElement('div');
     newEntryRow.className = 'row dynamic-entry-row';
-
     const amountDiv = document.createElement('div');
-    const amountLabel = document.createElement('label');
-    // amountLabel.textContent = `${entryText} Betrag (€)`; // Removed for cleaner UI
     const amountInput = document.createElement('input');
-    amountInput.type = 'number';
-    amountInput.min = '0';
-    amountInput.value = '0';
-    amountInput.className = typeClassAmount;
-    amountInput.placeholder = "Betrag";
-    // amountDiv.appendChild(amountLabel);
+    amountInput.type = 'number'; amountInput.min = '0'; amountInput.value = '0';
+    amountInput.className = typeClassAmount; amountInput.placeholder = "Betrag";
     amountDiv.appendChild(amountInput);
-
     const yearDiv = document.createElement('div');
-    const yearLabel = document.createElement('label');
-    // yearLabel.textContent = `${entryText} im Jahr`; // Removed for cleaner UI
     const yearInput = document.createElement('input');
-    yearInput.type = 'number';
-    yearInput.min = '1';
-    yearInput.value = '1';
-    yearInput.className = typeClassYear;
-    yearInput.placeholder = "Jahr";
-    // yearDiv.appendChild(yearLabel);
+    yearInput.type = 'number'; yearInput.min = '1'; yearInput.value = '1';
+    yearInput.className = typeClassYear; yearInput.placeholder = "Jahr";
     yearDiv.appendChild(yearInput);
-    
     const removeBtn = document.createElement('button');
-    removeBtn.type = 'button';
-    removeBtn.textContent = 'X';
-    removeBtn.className = 'remove-btn';
+    removeBtn.type = 'button'; removeBtn.textContent = 'X'; removeBtn.className = 'remove-btn';
     removeBtn.onclick = () => newEntryRow.remove();
-
-    newEntryRow.appendChild(amountDiv);
-    newEntryRow.appendChild(yearDiv);
-    newEntryRow.appendChild(removeBtn);
+    newEntryRow.appendChild(amountDiv); newEntryRow.appendChild(yearDiv); newEntryRow.appendChild(removeBtn);
     container.appendChild(newEntryRow);
 }
 
-document.getElementById('addLumpsumBtn').addEventListener('click', () => {
-    addDynamicEntry(lumpsumEntriesContainer, 'lumpsum-amount', 'lumpsum-year', 'Weitere Einmalzahlung');
-});
-
-document.getElementById('addOneTimePayoutBtn').addEventListener('click', () => {
-    addDynamicEntry(oneTimePayoutEntriesContainer, 'payout-amount', 'payout-year', 'Weitere Auszahlung');
-});
-
+document.getElementById('addLumpsumBtn').addEventListener('click', () => addDynamicEntry(lumpsumEntriesContainer, 'lumpsum-amount', 'lumpsum-year'));
+document.getElementById('addOneTimePayoutBtn').addEventListener('click', () => addDynamicEntry(oneTimePayoutEntriesContainer, 'payout-amount', 'payout-year'));
 
 function getDynamicEntries(amountClass, yearClass) {
     const amounts = document.querySelectorAll(`.${amountClass}`);
@@ -275,35 +279,27 @@ function getDynamicEntries(amountClass, yearClass) {
     const entries = [];
     for (let i = 0; i < amounts.length; i++) {
         const amount = parseFloat(amounts[i].value) || 0;
-        const year = parseInt(years[i].value) || 0;
-        if (amount > 0 && year > 0) { // Only consider valid entries
-            entries.push({ amount, year });
-        }
+        const yearVal = parseInt(years[i].value) || 0; // Renamed to avoid conflict with global 'years'
+        if (amount > 0 && yearVal > 0) entries.push({ amount, year: yearVal });
     }
     return entries;
 }
 
-
 function calc(withTax) {
   warnEl.textContent = '';
 
-  const rate = parseFloat(rateEl.value) || 0;
-  const years = parseInt(yearsEl.value) || 0;
+  const baseMonthlyRate = parseFloat(rateEl.value) || 0;
+  const totalYears = parseInt(yearsEl.value) || 0; // Renamed from 'years' to avoid conflict
   
-  let annualInterestRateValue;
-  if (interestRatePresetEl.value === 'custom') {
-    annualInterestRateValue = parseFloat(interestCustomEl.value) || 0;
-  } else {
-    annualInterestRateValue = parseFloat(interestRatePresetEl.value) || 0;
-  }
+  let annualInterestRateValue = (interestRatePresetEl.value === 'custom') ? 
+                                (parseFloat(interestCustomEl.value) || 0) : 
+                                (parseFloat(interestRatePresetEl.value) || 0);
   const annualInterestRate = annualInterestRateValue / 100;
-  
   const startCapital = parseFloat(startEl.value) || 0;
+  const stopMonthlyRateEnabled = stopMonthlyRateEnableEl.checked;
+  const stopMonthlyRateAtYear = parseInt(stopMonthlyRateYearEl.value) || 0;
 
-  // Get all lumpsum entries
   const allLumpsums = getDynamicEntries('lumpsum-amount', 'lumpsum-year');
-
-  // Get all one-time payout entries
   const allOneTimePayouts = getDynamicEntries('payout-amount', 'payout-year');
   
   const payoutPlanAmount = parseFloat(payoutPlanAmountEl.value) || 0;
@@ -311,155 +307,218 @@ function calc(withTax) {
   const payoutPlanInterval = payoutIntervalEl.value;
   const payoutPlanIntervalDays = parseInt(payoutIntervalDaysEl.value) || 0;
 
-  // --- Validations ---
-  if (years < 1) { warnEl.textContent = 'Bitte Laufzeit ≥ 1 Jahr eingeben.'; return; }
-  allLumpsums.forEach(lump => {
-      if (lump.year < 1 || lump.year > years) { warnEl.textContent = `Einmalzahlung (${fmt(lump.amount)}) im Jahr ${lump.year} ist außerhalb der Laufzeit.`; return; }
-  });
-  if (warnEl.textContent) return; // Stop if validation failed
-
-  allOneTimePayouts.forEach(payout => {
-      if (payout.year < 1 || payout.year > years) { warnEl.textContent = `Einmalige Auszahlung (${fmt(payout.amount)}) im Jahr ${payout.year} ist außerhalb der Laufzeit.`; return; }
-  });
-  if (warnEl.textContent) return;
-
+  if (totalYears < 1) { warnEl.textContent = 'Bitte Laufzeit ≥ 1 Jahr eingeben.'; return; }
+  if (stopMonthlyRateEnabled && (stopMonthlyRateAtYear < 1 || stopMonthlyRateAtYear > totalYears)) {
+    warnEl.textContent = `Jahr zum Stoppen der Monatsrate (${stopMonthlyRateAtYear}) ist außerhalb der Laufzeit.`; return;
+  }
+  for (const lump of allLumpsums) {
+      if (lump.year < 1 || lump.year > totalYears) { warnEl.textContent = `Einmalzahlung (${fmt(lump.amount)}) im Jahr ${lump.year} ist außerhalb der Laufzeit.`; return; }
+  }
+  for (const payout of allOneTimePayouts) {
+      if (payout.year < 1 || payout.year > totalYears) { warnEl.textContent = `Einmalige Auszahlung (${fmt(payout.amount)}) im Jahr ${payout.year} ist außerhalb der Laufzeit.`; return; }
+  }
   if (payoutPlanAmount > 0) {
-    if (payoutPlanStartYear < 1 || payoutPlanStartYear > years) { warnEl.textContent = 'Auszahlplan Startjahr außerhalb der Laufzeit.'; return; }
+    if (payoutPlanStartYear < 1 || payoutPlanStartYear > totalYears) { warnEl.textContent = 'Auszahlplan Startjahr außerhalb der Laufzeit.'; return; }
     if (payoutPlanInterval === 'custom' && (payoutPlanIntervalDays < 1 || payoutPlanIntervalDays > 365)) {
       warnEl.textContent = 'Auszahlintervall (Tage) für "Eigenes Intervall" muss zwischen 1 und 365 liegen.'; return;
     }
   }
-  if (warnEl.textContent) return;
-
 
   const monthlyInterestRate = annualInterestRate / 12;
   let balance = startCapital;
-  let totalPaidIn = startCapital; 
+  let cumulativeGrossDeposits = startCapital; 
+  let cumulativeTotalPayouts = 0;
 
   const labels = [];
-  const cumulativeDepositsData = []; 
-  const cumulativeGainData = [];     
-  const cumulativeTaxData = [];      
+  const chartGrossDepositsData = []; 
+  const chartNetPayoutsData = []; // Will store negative values for payouts
+  const chartGainData = [];     
+  const chartTaxData = [];      
 
   let cumulativeEconomicGrossProfitPrevYear = 0;
   let totalTaxPaid = 0;
 
-  for (let y = 1; y <= years; y++) {
-    // 1. Lumpsum deposits for the current year y
+  for (let y = 1; y <= totalYears; y++) {
+    // Process deposits for the year
     allLumpsums.forEach(lump => {
         if (lump.year === y) {
             balance += lump.amount;
-            totalPaidIn += lump.amount;
+            cumulativeGrossDeposits += lump.amount;
         }
     });
 
-    // 2. One-time payouts for the current year y
+    // Process one-time payouts for the year
     allOneTimePayouts.forEach(payout => {
         if (payout.year === y) {
             const actualPayoutAmount = Math.min(balance, payout.amount);
             balance -= actualPayoutAmount;
-            totalPaidIn -= actualPayoutAmount;
+            cumulativeTotalPayouts += actualPayoutAmount;
         }
     });
     
-    // 3. Monthly calculations
+    // Monthly calculations
     for (let m = 1; m <= 12; m++) {
-      balance *= (1 + monthlyInterestRate);
-      balance += rate;
-      totalPaidIn += rate;
+      balance *= (1 + monthlyInterestRate); 
 
+      let currentActualMonthlyRate = baseMonthlyRate;
+      if (stopMonthlyRateEnabled && y >= stopMonthlyRateAtYear) {
+          currentActualMonthlyRate = 0; 
+      }
+
+      if (currentActualMonthlyRate > 0) {
+           balance += currentActualMonthlyRate;
+           cumulativeGrossDeposits += currentActualMonthlyRate;
+      }
+
+      // Monthly payout plan
       if (y >= payoutPlanStartYear && payoutPlanAmount > 0 && payoutPlanInterval === 'monthly') {
         const actualMonthlyPayout = Math.min(balance, payoutPlanAmount);
         balance -= actualMonthlyPayout;
-        totalPaidIn -= actualMonthlyPayout;
+        cumulativeTotalPayouts += actualMonthlyPayout;
       }
     }
 
-    // 4. Year-end payout plan withdrawals
+    // Year-end payout plan
     if (y >= payoutPlanStartYear && payoutPlanAmount > 0) {
       let yearlyEquivalentPayout = 0;
-      if (payoutPlanInterval === 'yearly') {
-        yearlyEquivalentPayout = payoutPlanAmount;
-      } else if (payoutPlanInterval === 'custom' && payoutPlanIntervalDays > 0) {
-        yearlyEquivalentPayout = payoutPlanAmount * (365 / payoutPlanIntervalDays);
-      }
+      if (payoutPlanInterval === 'yearly') yearlyEquivalentPayout = payoutPlanAmount;
+      else if (payoutPlanInterval === 'custom' && payoutPlanIntervalDays > 0) yearlyEquivalentPayout = payoutPlanAmount * (365 / payoutPlanIntervalDays);
+      
       if (yearlyEquivalentPayout > 0) {
         const actualYearlyEquivalentPayout = Math.min(balance, yearlyEquivalentPayout);
         balance -= actualYearlyEquivalentPayout;
-        totalPaidIn -= actualYearlyEquivalentPayout;
+        cumulativeTotalPayouts += actualYearlyEquivalentPayout;
       }
     }
     
-    // 5. Calculate profits and taxes
-    const currentEconomicGrossProfit = balance - totalPaidIn;
+    // Calculate economic profit and taxes
+    const netInvestedCapital = cumulativeGrossDeposits - cumulativeTotalPayouts;
+    const currentEconomicGrossProfit = balance - netInvestedCapital;
     const taxableGainThisYear = currentEconomicGrossProfit - cumulativeEconomicGrossProfitPrevYear;
     const yearTax = withTax ? Math.max(0, taxableGainThisYear * taxRate) : 0;
     totalTaxPaid += yearTax;
     cumulativeEconomicGrossProfitPrevYear = currentEconomicGrossProfit;
 
+    // Data for charts
     labels.push('Jahr ' + y);
-    const chartDepositValue = Math.max(0, totalPaidIn);
-    cumulativeDepositsData.push(chartDepositValue);
+    chartGrossDepositsData.push(cumulativeGrossDeposits);
+    chartNetPayoutsData.push(-cumulativeTotalPayouts); // Store as negative for chart
+
+    const gainForChart = balance - cumulativeGrossDeposits - (withTax ? totalTaxPaid : 0);
+    chartGainData.push(Math.max(0, gainForChart)); // Ensure gain is not visually negative if balance < gross deposits + tax
 
     if (withTax) {
-      const chartNetGainValue = Math.max(0, balance - chartDepositValue - totalTaxPaid); // Ensure gain is not negative on chart
-      cumulativeGainData.push(chartNetGainValue); 
-      cumulativeTaxData.push(totalTaxPaid);
-    } else {
-      const chartGrossGainValue = Math.max(0, balance - chartDepositValue); // Ensure gain is not negative on chart
-      cumulativeGainData.push(chartGrossGainValue);
+      chartTaxData.push(totalTaxPaid);
     }
   }
 
   const finalBalance = balance;
-  const finalTrueTotalPaidIn = totalPaidIn;
-  const finalEconomicGrossGain = finalBalance - finalTrueTotalPaidIn;
+  const finalGrossDeposits = cumulativeGrossDeposits;
+  const finalTotalPayouts = cumulativeTotalPayouts;
+  const finalNetInvested = finalGrossDeposits - finalTotalPayouts;
+  const finalEconomicGrossGain = finalBalance - finalNetInvested;
   const finalEconomicNetGain = finalEconomicGrossGain - totalTaxPaid;
 
-  headlineEl.textContent = `Endkapital: ${fmt(finalBalance)}  Einzahlungen: ${fmt(finalTrueTotalPaidIn)}  Gewinn${withTax ? ' (Netto)' : ''}: ${fmt(withTax ? finalEconomicNetGain : finalEconomicGrossGain)}`;
+  // Update Headline
+  headlineEl.innerHTML = `
+    <div class="headline-item">Endkapital: <span class="headline-value">${fmt(finalBalance)}</span></div>
+    <div class="headline-item">Brutto-Einzahlungen: <span class="headline-sub-value">${fmt(finalGrossDeposits)}</span></div>
+    <div class="headline-item">Auszahlungen: <span class="headline-sub-value">${fmt(finalTotalPayouts)}</span></div>
+    <div class="headline-item">Gewinn ${withTax ? '(Netto)' : '(Brutto)'}: <span class="headline-value">${fmt(withTax ? finalEconomicNetGain : finalEconomicGrossGain)}</span></div>
+  `;
 
+  // Main Chart
   if (chartMain) chartMain.destroy();
   const datasetsMain = [
-    { label: 'Einzahlung kumuliert', data: cumulativeDepositsData, backgroundColor: 'rgba(101,115,255,0.7)', stack: 's', maxBarThickness: 50 },
-    { label: `Gewinn kumuliert${withTax ? ' (Netto)' : ''}`, data: cumulativeGainData, backgroundColor: 'rgba(46,204,113,0.7)', stack: 's', maxBarThickness: 50 }
+    { 
+      label: 'Einzahlung kumuliert (Brutto)', 
+      data: chartGrossDepositsData, 
+      backgroundColor: 'rgba(101,115,255,0.7)', 
+      stack: 'positiveStack', // Group positive values
+      maxBarThickness: 50 
+    },
+    { 
+      label: `Gewinn kumuliert${withTax ? ' (Netto)' : ''}`, 
+      data: chartGainData, 
+      backgroundColor: 'rgba(46,204,113,0.7)', 
+      stack: 'positiveStack', 
+      maxBarThickness: 50 
+    }
   ];
   if (withTax) {
-    datasetsMain.push({ label: 'Steuer kumuliert', data: cumulativeTaxData, backgroundColor: 'rgba(231,76,60,0.7)', stack: 's', maxBarThickness: 50 });
+    datasetsMain.push({ 
+      label: 'Steuer kumuliert', 
+      data: chartTaxData, 
+      backgroundColor: 'rgba(231,76,60,0.7)', 
+      stack: 'positiveStack', 
+      maxBarThickness: 50 
+    });
   }
+  datasetsMain.push({
+      label: 'Auszahlungen kumuliert',
+      data: chartNetPayoutsData, // These are negative values
+      backgroundColor: 'var(--payout-color)', // Orange
+      stack: 'negativeStack', // Separate stack for negative values
+      maxBarThickness: 50
+  });
+
   chartMain = new Chart(document.getElementById('chart').getContext('2d'), {
-    type: 'bar',
+    type: 'bar', 
     data: { labels: labels, datasets: datasetsMain },
-    options: {
-      responsive: true,
-      scales: { y: { beginAtZero: true, stacked: true }, x: { stacked: true } }
+    options: { 
+      responsive: true, 
+      scales: { 
+        y: { 
+            beginAtZero: true, 
+            stacked: true  // Enable stacking for y-axis
+        }, 
+        x: { 
+            stacked: true // Enable stacking for x-axis (important for multiple stacks)
+        } 
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              let label = context.dataset.label || '';
+              if (label) {
+                label += ': ';
+              }
+              if (context.parsed.y !== null) {
+                // For payouts, show the absolute value
+                const value = context.dataset.label === 'Auszahlungen kumuliert' ? Math.abs(context.parsed.y) : context.parsed.y;
+                label += fmt(value);
+              }
+              return label;
+            }
+          }
+        }
+      }
     }
   });
 
+  // Comparison Chart
   if (chartCompare) chartCompare.destroy();
-  const bank0 = finalTrueTotalPaidIn > 0 ? finalTrueTotalPaidIn : 0; 
+  const bank0NetInvested = finalNetInvested > 0 ? finalNetInvested : 0; 
   let tdTotal = startCapital;
-    allLumpsums.forEach(lump => { // Basic consideration of lumpsums for Tagesgeld
-        if (lump.amount > 0) tdTotal += lump.amount;
-    });
-  for (let yCalc = 1; yCalc <= years; yCalc++) {
-    tdTotal += (rate * 12); 
+  allLumpsums.forEach(lump => { if (lump.amount > 0) tdTotal += lump.amount; });
+  
+  for (let yCalc = 1; yCalc <= totalYears; yCalc++) {
+    let yearlyContributionForTd = baseMonthlyRate * 12;
+    if(stopMonthlyRateEnabled && yCalc >= stopMonthlyRateAtYear) {
+        yearlyContributionForTd = 0;
+    }
+    tdTotal += yearlyContributionForTd;
+    // Payouts are not directly subtracted from tdTotal here for simplicity,
+    // but a more complex model could.
     tdTotal *= (1 + 0.02); 
-    // Note: Payouts are not factored into this simplified Tagesgeld comparison
   }
 
-  const compareData = [finalBalance, tdTotal, bank0];
-  const compareLabels = ['ETF', 'Tagesgeld 2%', 'Bank 0%'];
+  const compareData = [finalBalance, tdTotal, bank0NetInvested];
+  const compareLabels = ['ETF', 'Tagesgeld 2%', 'Bank 0% (Nettoinvest.)'];
   chartCompare = new Chart(document.getElementById('compare').getContext('2d'), {
-    type: 'bar',
-    data: {
-      labels: compareLabels,
-      datasets: [{ data: compareData, backgroundColor: ['rgba(46,204,113,0.7)', 'rgba(52,152,219,0.7)', 'rgba(149,165,166,0.7)'], maxBarThickness: 70 }]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true } }
-    }
+    type: 'bar', data: { labels: compareLabels, datasets: [{ data: compareData, backgroundColor: ['rgba(46,204,113,0.7)','rgba(52,152,219,0.7)','rgba(149,165,166,0.7)'], maxBarThickness: 70 }] },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
   });
 }
 // calc(false); 
