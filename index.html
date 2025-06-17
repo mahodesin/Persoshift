@@ -463,9 +463,101 @@ const whyInvestContent = document.getElementById('whyInvestContent');
 
 // Data for informational modals
 const modalData = { 
-    modalSP500: { /* ... content as before ... */ },
-    modalMSCIWorld: { /* ... content as before ... */ },
-    // ... other modals
+    modalSP500: {
+        title: "Was ist der S&P 500?",
+        content: `
+            <p>Der S&P 500 ist ein Aktienindex, der die 500 größten börsennotierten US-Unternehmen abbildet. Er gilt als wichtiger Indikator für den US-Aktienmarkt.</p>
+            <h3>Durchschnittliche Jahresrendite (p.a.)</h3>
+            <p>Historisch lag die durchschnittliche Rendite bei ca. <strong>10% pro Jahr</strong> vor Inflation.</p>
+            <p><strong>Wichtig:</strong> Vergangene Renditen sind keine Garantie für zukünftige Ergebnisse. Der Wert kann schwanken.</p>
+            <p>Ein bekannter ETF ist der iShares Core S&P 500 UCITS ETF (<strong>ISIN: IE00B5BMR087</strong>).</p>
+        `
+    },
+    modalMSCIWorld: {
+        title: "Was ist der MSCI World?",
+        content: `
+            <p>Der MSCI World ist ein globaler Aktienindex, der ca. 1.500 Unternehmen aus 23 Industrieländern umfasst. Er bietet eine breite internationale Streuung.</p>
+            <h3>Durchschnittliche Jahresrendite (p.a.)</h3>
+            <p>Langfristig lag die durchschnittliche Rendite bei ca. <strong>7-9% pro Jahr</strong> vor Inflation.</p>
+            <p><strong>Wichtig:</strong> Auch hier sind vergangene Werte keine Garantie für die Zukunft und Schwankungen sind normal.</p>
+            <p>Ein bekannter ETF ist der iShares Core MSCI World UCITS ETF (<strong>ISIN: IE00B4L5Y983</strong>).</p>
+        `
+    },
+    modalMonthlyRate: {
+        title: "Wieviel soll ich investieren?",
+        content: `
+            <p><strong>Wichtig ist: Regelmäßigkeit schlägt Höhe.</strong></p>
+            <p>Ein monatlicher ETF-Sparplan ab z.B. 100 € ist oft besser als gar nichts – und lässt sich jederzeit anpassen.</p>
+            <p>Eine gängige Faustregel ist, <strong>10-15% des Nettoeinkommens</strong> für die Altersvorsorge zu investieren. Passen Sie den Betrag an Ihre persönliche finanzielle Situation an.</p>
+        `
+    },
+    modalTaxInfo: {
+        title: "Information zur Kapitalertragsteuer",
+        content: `
+            <p>In Deutschland unterliegen Kapitalerträge (z.B. Zinsen, Dividenden, realisierte Kursgewinne) der Abgeltungsteuer.</p>
+            <p>Der hier verwendete Satz von <strong>26,375%</strong> setzt sich zusammen aus:</p>
+            <ul>
+                <li>25% Abgeltungsteuer</li>
+                <li>+ 5,5% Solidaritätszuschlag auf die Abgeltungsteuer (25% * 0,055 = 1,375%)</li>
+            </ul>
+            <p>(Ggf. kommt noch Kirchensteuer hinzu, diese ist hier nicht berücksichtigt.)</p>
+            <p>Der <strong>Sparer-Pauschbetrag (Freibetrag)</strong> von derzeit 1.000 € pro Person kann auf Kapitalerträge angerechnet werden.</p>
+        `
+    },
+    modalEtfTypeInfo: {
+        title: "ETF-Typen: Thesaurierend vs. Ausschüttend",
+        content: `
+            <h4>Thesaurierende ETFs:</h4>
+            <p>Erträge (z.B. Dividenden) werden automatisch im Fondsvermögen wiederangelegt. Dies führt zu einem stärkeren Zinseszinseffekt. Jährlich wird eine <strong>Vorabpauschale</strong> als fiktiver Ertrag besteuert.</p>
+            <h4>Ausschüttende ETFs:</h4>
+            <p>Erträge werden direkt an die Anleger ausgezahlt. Diese Ausschüttungen sind im Jahr des Zuflusses steuerpflichtig (sofern sie den Freibetrag übersteigen).</p>
+        `
+    },
+    modalBasiszinsInfo: {
+        title: "Was ist der Basiszins?",
+        content: `
+            <p>Der Basiszins wird von der Deutschen Bundesbank festgelegt und ist die Grundlage für die Berechnung der <strong>Vorabpauschale</strong> bei thesaurierenden ETFs.</p>
+            <p>Die Formel (vereinfacht):<br>
+            <em>Vorabpauschale = Fondswert zu Jahresbeginn × Basiszins × 0,7</em></p>
+            <p>Der Basiszins für das Jahr 2024 wurde auf <strong>2,29%</strong> festgelegt.</p>
+        `
+    },
+    modalVerkaufsteuerInfo: {
+        title: "Verkaufsteuer bei Thesaurierenden ETFs",
+        content: `
+            <p>Die hier angezeigte "Verkaufsteuer (hypothetisch)" ist eine Schätzung der Steuer, die anfallen würde, wenn das gesamte Depot am Ende der Laufzeit verkauft wird.</p>
+            <p>Sie berechnet sich auf den Teil des Gewinns, der noch nicht durch die jährlichen Vorabpauschalen versteuert wurde. Dies ist eine Vereinfachung.</p>
+        `
+    },
+    modalFreibetragInfo: {
+        title: "Was ist der jährliche Freibetrag?",
+        content: `
+            <p>In Deutschland gibt es den <strong>Sparer-Pauschbetrag</strong>. Kapitalerträge bis zu dieser Höhe sind steuerfrei.</p>
+            <ul>
+                <li>Für Einzelpersonen: <strong>1.000 € pro Jahr</strong></li>
+                <li>Für zusammenveranlagte Ehegatten: <strong>2.000 € pro Jahr</strong></li>
+            </ul>
+            <p>Nur der Teil der Erträge, der diesen Betrag übersteigt, wird versteuert.</p>
+        `
+    },
+    modalSteuersatzInfo: {
+        title: "Information zum Steuersatz",
+        content: `
+            <p>Der Steuersatz auf Kapitalerträge in Deutschland ist die <strong>Abgeltungsteuer</strong>.</p>
+            <p>Der Standardsatz von <strong>26,375%</strong> setzt sich zusammen aus 25% Abgeltungsteuer + 5,5% Solidaritätszuschlag darauf.</p>
+            <p>Falls Sie kirchensteuerpflichtig sind, erhöht sich der Satz. Dies ist hier nicht standardmäßig berücksichtigt, Sie können den Satz aber manuell anpassen.</p>
+        `
+    },
+    modalDateTypeInfo: {
+        title: "Laufjahr vs. Kalenderjahr",
+        content: `
+            <p>Hier legen Sie fest, wie Jahresangaben bei Auszahlungen interpretiert werden.</p>
+            <h4>Laufjahr</h4>
+            <p>Bezieht sich auf das Investitionsjahr. 'Jahr 5' ist das fünfte Jahr nach Investitionsstart.</p>
+            <h4>Kalenderjahr</h4>
+            <p>Bezieht sich auf ein spezifisches Kalenderjahr (z.B. 2035). Dies erfordert die Angabe eines Start-Kalenderjahres.</p>
+        `
+    }
 };
 
 // Functions to open and close modals
@@ -834,7 +926,6 @@ document.querySelectorAll('.btn-group .btn').forEach(button => {
     });
 });
 
-// Main calculation function
 function calc(withTax) {
   warnEl.textContent = '';
   const currency = currencyEl.value;
@@ -886,7 +977,6 @@ function calc(withTax) {
   let freibetragRestJahr = currentFreibetrag; 
   let allVPAsPaid = 0;
 
-  // Arrays for chart data
   const labels = [];
   const chartNetDepositsData = []; 
   const chartNetGainData = [];     
@@ -1078,7 +1168,6 @@ function calc(withTax) {
   });
 }
 
-// Initial calculation on page load
 document.addEventListener('DOMContentLoaded', () => {
     resetValuesAndCalc();
 });
