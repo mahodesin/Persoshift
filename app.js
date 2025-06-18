@@ -1,423 +1,3 @@
-<!doctype html>
-<html lang="de">
-<head>
-  <meta charset="utf-8">
-  <title>PersoShift ETF‑Rechner</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <link rel="preconnect" href="https://fonts.gstatic.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <style>
-    :root {
-      --bg: #f9f9fa;
-      --card-bg: #ffffff;
-      --primary: #4A90E2;
-      --primary-hover: #357ABD;
-      --text: #333333;
-      --muted: #666666;
-      --border: #e0e0e0;
-      --danger: #e74c3c;
-      --success: #2ecc71;
-      --payout-color-annual: rgba(39, 174, 96, 0.8); /* Green for annual payouts */
-      --info-bg: #eef6ff;
-      --secondary-btn-bg: #7f8c8d;
-      --secondary-btn-hover-bg: #6c7a7d;
-      --capital-color: #3498DB; 
-      --gain-color: #F39C12;     
-      --tax-color-diagram: rgba(231, 76, 60, 0.8); 
-    }
-    *, *::before, *::after { box-sizing: border-box; }
-    body { margin:0; background-color:var(--bg); color:var(--text); font-family:'Inter',sans-serif; line-height:1.6; font-size: 16px;}
-    .container { max-width:800px; margin:1rem auto; padding:0 1rem; }
-
-    .main-headline { text-align:center; font-size:2.5rem; margin-bottom:1rem; color: var(--primary); font-weight: 700;}
-
-    .top-info-section {
-      background-color: var(--card-bg); padding: 1.5rem; border-radius: 12px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.08); margin-bottom: 2rem;
-    }
-    .top-info-section h2 { font-size: 1.5rem; color: var(--primary); margin-top: 0; margin-bottom: 1rem; display: flex; align-items: center; }
-    .top-info-section .toggle-button {
-      background-color: var(--primary); color: white; border: none; padding: 0.5rem 1rem;
-      border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 600;
-      transition: background-color 0.3s; margin-top: 1rem;
-    }
-    .top-info-section .toggle-button:hover { background-color: var(--primary-hover); }
-    .top-info-content { display: none; margin-top: 1rem; font-size: 0.95rem; line-height: 1.7; }
-    .top-info-content h3, .top-info-content h4 { font-size: 1.2rem; color: var(--text); margin-top: 1.5rem; margin-bottom: 0.5rem;}
-    .top-info-content p, .top-info-content ul { margin-bottom: 1rem; }
-    .top-info-content ul { padding-left: 20px; list-style-position: inside; } .top-info-content li { margin-bottom: 0.5rem; }
-    .top-info-content strong { font-weight: 600; }
-    .top-info-content .highlight { color: var(--success); font-weight: 600; }
-    .top-info-content .warning { color: var(--danger); font-weight: 600; }
-    .top-info-content .sub-list { padding-left: 20px; margin-top: 0.5rem;}
-    .top-info-content .sub-list li {font-size: 0.9em;}
-    .point-toggle { background: none; border: none; text-align: left; padding: 0; font-size: 1.2rem; font-weight: 600; color: var(--text); cursor: pointer; width: 100%;}
-    .point-toggle::after { content: ' ▼'; font-size: 0.8em; }
-    .point-toggle.open::after { content: ' ▲'; }
-    .point-details { display: none; padding-left: 1rem; border-left: 2px solid var(--border); margin-top: 1rem;}
-
-
-    h1 { text-align:center; font-size:2.2rem; margin-bottom:0.5rem; margin-top: 2rem; color: var(--primary); }
-    .card { background:var(--card-bg); padding:2rem; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.1); margin-bottom:2rem; }
-    label { display:block; margin:0.75rem 0 0.25rem; font-size:1rem; color:var(--text); font-weight: 500; }
-    .label-group { display: flex; align-items: center; gap: 0.5rem;}
-    input[type="number"], select, input[type="checkbox"] { width:100%; padding:0.7rem; font-size:1rem; border:1px solid var(--border); border-radius:8px; transition:border-color 0.3s; background-color: #fdfdff; }
-    input[type="checkbox"] { width: auto; height: auto; margin-right: 0.5rem; vertical-align: middle;}
-    input:focus, select:focus { border-color:var(--primary); outline:none; box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.25); }
-    .row { display:flex; flex-wrap: wrap; gap:1rem; margin-top:0.5rem; align-items: flex-end; }
-    .row > * { flex: 1; min-width: 130px; }
-    .btn-group { display: flex; gap: 1rem; margin-top: 0.5rem; }
-    .btn { display:block; width:100%; padding:0.8rem; margin:0; font-size:1.05rem; font-weight:600; color:#fff; background:var(--primary); border:none; border-radius:8px; cursor:pointer; transition:background 0.3s; }
-    .btn:hover { background:var(--primary-hover); }
-    .btn.active-calc-btn { background-color: var(--primary-hover); box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
-    .btn-secondary { background-color: var(--secondary-btn-bg); }
-    .btn-secondary:hover { background-color: var(--secondary-btn-hover-bg); }
-    .tax-note-container { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 0.5rem; margin-bottom: 1rem;}
-    .tax-note { font-size: 0.85rem; color: var(--muted); text-align: center; margin:0; }
-    #advToggle { display:block; margin:1.5rem 0 1rem; font-size:1rem; font-weight:600; color:var(--primary); cursor:pointer; text-align: left; }
-    #advanced { display:none; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:1.5rem; margin-bottom:1rem; margin-top: 0.5rem; }
-    #warn { color:var(--danger); font-size:0.95rem; min-height:1.2em; margin-top:0.5rem; text-align: center; font-weight: 500;}
-    
-    .headline-container { background-color: var(--info-bg); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; } 
-    .headline-item { margin-bottom: 0.4rem; font-size: 1.05rem; display: flex; justify-content: space-between; align-items: center;}
-    .headline-label { color: var(--muted); }
-    .headline-value { font-weight: 600; color: var(--primary); }
-    .headline-sub-value { color: var(--text); font-weight: 500; }
-    .headline-item .info-btn { margin-left: 8px; } 
-
-
-    h3 { text-align:center; margin-top:2.5rem; font-size:1.6rem; color: var(--text); }
-    canvas { display:block; width:100% !important; max-width:800px; height:auto !important; aspect-ratio: 16 / 10; max-height: 500px; margin:0 auto 1.5rem; background:var(--card-bg); border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.05); } 
-    
-    .interest-rate-group { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
-    .interest-rate-group select { flex: 2 1 150px; }
-    .interest-rate-group input[type="number"] { flex: 1 1 100px; }
-    .info-button-group { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem; flex-wrap: wrap;}
-    .info-btn {
-      background-color: var(--muted); color: white; border: none; border-radius: 50%;
-      width: 22px; height: 22px; font-size: 0.8rem; line-height: 22px; text-align: center;
-      cursor: pointer; transition: background-color 0.2s; font-weight: bold;
-      padding:0; display:inline-flex; justify-content:center; align-items:center;
-    }
-    .info-btn:hover { background-color: var(--primary); }
-    .info-btn-label { font-size: 0.9rem; color: var(--muted); }
-
-    .add-btn {
-      background-color: var(--success); color: white; border: none; border-radius: 50%;
-      width: 32px; height: 32px; font-size: 1.3rem; line-height: 32px; text-align: center;
-      cursor: pointer; margin-top: 0.5rem; padding:0;
-      transition: background-color 0.2s;
-    }
-    .add-btn:hover { background-color: #27ae60; }
-    .remove-btn {
-      background-color: var(--danger); color: white; border: none; border-radius: 4px;
-      padding: 0.4rem 0.7rem; font-size: 0.85rem; cursor: pointer;
-      height: fit-content; align-self: center; margin-left: 0.5rem;
-    }
-    .remove-btn:hover { background-color: #c0392b; }
-    .dynamic-entry-row { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed var(--border); display: flex; gap: 0.5rem; align-items: flex-end;}
-    .dynamic-entry-row > div { flex:1; }
-
-    .inline-label { display: inline; margin-left: 0.25rem; font-weight: normal;}
-    .form-group { margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
-    .form-group:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0;}
-
-    .chart-controls { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 0.5rem; font-size: 0.9rem;}
-    .chart-controls label { margin: 0 0.5rem 0 0; font-weight: normal; }
-
-    .chart-mode-container { display:flex; align-items:center; gap:0.5rem; margin:0.5rem 0; font-size:0.9rem; }
-    #historicalDataContainer textarea { width:100%; padding:0.5rem; margin-top:0.25rem; }
-
-    .compare-options { display:flex; justify-content:center; gap:1rem; flex-wrap:wrap; margin-bottom:0.5rem; font-size:0.9rem; }
-    .compare-options label { display:flex; align-items:center; gap:0.25rem; }
-    .compare-options .legend-color { width:12px; height:12px; display:inline-block; border-radius:2px; }
-
-
-    .modal {
-      display: none; position: fixed; z-index: 1000; left: 0; top: 0;
-      width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5);
-      align-items: center; justify-content: center;
-    }
-    .modal-content {
-      background-color: var(--card-bg); margin: auto; padding: 25px; border-radius: 12px;
-      width: 90%; max-width: 650px; box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-      position: relative; animation: fadeInModal 0.3s ease-out;
-    }
-    @keyframes fadeInModal { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
-    .modal-close {
-      color: var(--muted); float: right; font-size: 2rem; font-weight: bold;
-      line-height: 1; cursor: pointer; transition: color 0.2s;
-    }
-    .modal-close:hover, .modal-close:focus { color: var(--danger); text-decoration: none; }
-    .modal h2 { font-size: 1.5rem; color: var(--primary); margin-top: 0; margin-bottom: 1rem;}
-    .modal p, .modal ul { font-size: 0.95rem; line-height: 1.7; color: var(--text); margin-bottom: 1rem;}
-    .modal ul { padding-left: 20px; } .modal li { margin-bottom: 0.5rem; }
-    .modal strong { font-weight: 600; }
-    .modal pre { white-space: pre-wrap; background-color: var(--bg); padding: 1rem; border-radius: 8px; font-size: 0.9rem; }
-  </style>
-
-  <link rel="stylesheet" href="style.css">
-
-</head>
-<body>
-
-<div class="container">
-  <h1 class="main-headline">PersoShift dein Helfer für Persönliche Entwicklung</h1>
-
-  <div class="top-info-section">
-    <h2>💼 Warum investieren?</h2>
-    <div id="whyInvestContent" class="top-info-content">
-        <!-- Dynamic content will be injected here by JavaScript -->
-    </div>
-    <button id="toggleWhyInvestBtn" class="toggle-button">Mehr erfahren</button>
-  </div>
-
-  <h1>ETF Sparplan-Rechner</h1>
-  <div class="card">
-    <label for="start">Startkapital (€)</label>
-    <input id="start" type="number" value="0" min="0">
-    
-    <div class="row">
-      <div style="flex: 2;">
-        <div class="label-group">
-          <label for="rate">Monatsrate (€)</label>
-          <button type="button" class="info-btn" data-modal-target="modalMonthlyRate" title="Wieviel soll ich investieren?">?</button>
-        </div>
-        <input id="rate" type="number" value="100" min="0">
-      </div>
-      <div style="flex: 1;">
-        <label for="currency">Währung</label>
-        <select id="currency">
-          <option value="EUR" selected>Euro (EUR)</option>
-          <option value="USD">US-Dollar (USD)</option>
-          <option value="JPY">Japanischer Yen (JPY)</option>
-          <option value="GBP">Britisches Pfund (GBP)</option>
-          <option value="AUD">Australischer Dollar (AUD)</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="row">
-        <div style="flex:2">
-            <label for="years">Laufzeit (Jahre)</label>
-            <input id="years" type="number" value="40" min="1"> 
-        </div>
-        <div style="flex:1">
-            <label for="startCalendarYear">Start-Kalenderjahr</label>
-            <input type="number" id="startCalendarYear" value="" placeholder="z.B. 2025"> 
-        </div>
-    </div>
-
-    <div>
-      <label for="interestRatePreset">Jahresrendite (%)</label>
-      <div class="interest-rate-group">
-        <select id="interestRatePreset">
-          <option value="10">Optimistisch 10%</option>
-          <option value="7.6">Realistisch 7,6%</option> 
-          <option value="5">Pessimistisch 5%</option>
-          <option value="custom">Benutzerdefiniert</option>
-        </select>
-        <input type="number" id="interestCustom" step="0.1" min="0" style="display:none;" placeholder="z.B. 6.5">
-      </div>
-      <div class="info-button-group">
-          <span class="info-btn-label">S&P500</span>
-          <button type="button" class="info-btn" data-modal-target="modalSP500" title="Was ist der S&P 500?">?</button>
-          <span class="info-btn-label" style="margin-left:10px;">MSCI World</span>
-          <button type="button" class="info-btn" data-modal-target="modalMSCIWorld" title="Was ist der MSCI World?">?</button>
-      </div>
-    </div>
-
-    <div class="form-group" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
-        <div class="row">
-            <div>
-                <div class="label-group">
-                    <label for="etfType">ETF-Typ:</label>
-                    <button type="button" class="info-btn" data-modal-target="modalEtfTypeInfo" title="ETF-Typen Erklärung">?</button>
-                </div>
-                <select id="etfType">
-                    <option value="thesaurierend" selected>Thesaurierend</option>
-                    <option value="ausschuettend">Ausschüttend</option> 
-                </select>
-            </div>
-             <div>
-                <div class="label-group">
-                    <label for="basiszins">Basiszins p.a. (%):</label>
-                     <button type="button" class="info-btn" data-modal-target="modalBasiszinsInfo" title="Was ist der Basiszins?">?</button>
-                </div>
-                <input type="number" id="basiszins" value="2.29" step="0.01" min="0"> 
-            </div>
-        </div>
-        <div class="row">
-            <div>
-                 <div class="label-group">
-                    <label for="freibetrag">Jährlicher Freibetrag (€):</label>
-                    <button type="button" class="info-btn" data-modal-target="modalFreibetragInfo" title="Info zum Freibetrag">?</button>
-                </div>
-                <input type="number" id="freibetrag" value="1000" min="0"> 
-            </div>
-            <div>
-                <div class="label-group">
-                    <label for="steuerSatz">Steuersatz (inkl. Soli %):</label>
-                    <button type="button" class="info-btn" data-modal-target="modalSteuersatzInfo" title="Info zum Steuersatz">?</button>
-                </div>
-                <input type="number" id="steuerSatz" value="26.375" step="0.001" min="0">
-            </div>
-        </div>
-    </div>
-
-
-    <div id="advToggle">Erweiterte Optionen ▼</div>
-    <div id="advanced">
-      <div class="form-group">
-        <h4 style="margin-bottom: 0.5rem; margin-top:0; font-weight:600; color:var(--primary);">Anpassung Monatsrate</h4>
-        <div class="row">
-            <div>
-                <label for="monthlyRateIncrease">Monatsrate um x % p.a. erhöhen</label>
-                <input id="monthlyRateIncrease" type="number" value="0" step="0.1" min="0">
-            </div>
-            <div>
-                <input type="checkbox" id="stopMonthlyRateEnable">
-                <label for="stopMonthlyRateEnable" class="inline-label">Monatsrate beenden?</label>
-                <div id="stopMonthlyRateYearContainer" style="display:none; margin-top:0.5rem;">
-                    <label for="stopMonthlyRateYear" style="font-size: 0.9rem;">Monatsrate stoppen ab Jahr (Laufjahr):</label>
-                    <input type="number" id="stopMonthlyRateYear" min="1" value="10"> 
-                </div>
-            </div>
-        </div>
-      </div>
-      
-      <div class="form-group">
-        <h4 style="margin-bottom: 0.5rem; margin-top:0; font-weight:600; color:var(--primary);">Einmalzahlungen</h4>
-        <div id="lumpsumEntriesContainer">
-          <div class="row main-entry-row">
-            <div>
-                <label for="lumpsum">Einmalige Einzahlung (€)</label>
-                <input id="lumpsum" type="number" value="0" min="0" class="lumpsum-amount">
-            </div>
-            <div>
-                <label for="lumpyear">Einmalige Einzahlung im Jahr (Laufjahr):</label>
-                <input id="lumpyear" type="number" value="1" min="1" class="lumpsum-year">
-            </div>
-          </div>
-        </div>
-        <button type="button" id="addLumpsumBtn" class="add-btn">+</button> <small>Weitere Einmalzahlung hinzufügen</small>
-      </div>
-      
-       <div class="form-group">
-        <h4 style="margin-bottom: 0.5rem; margin-top:0; font-weight:600; color:var(--primary);">Datums-Eingabeart für Auszahlungen</h4>
-        <div class="row">
-            <div>
-                 <div class="label-group">
-                    <label for="payoutYearType">Jahr-Typ für Auszahlungen:</label>
-                    <button type="button" class="info-btn" data-modal-target="modalDateTypeInfo" title="Laufjahr vs. Kalenderjahr">?</button>
-                 </div>
-                <select id="payoutYearType">
-                    <option value="laufjahr" selected>Laufjahr</option>
-                    <option value="kalenderjahr">Kalenderjahr</option>
-                </select>
-            </div>
-        </div>
-       </div>
-
-      <div class="form-group">
-        <h4 style="margin-bottom: 0.5rem; margin-top:0; font-weight:600; color:var(--primary);">Auszahlungen</h4>
-        <div id="oneTimePayoutEntriesContainer">
-           <div class="row main-entry-row">
-               <div>
-                <label>Einmalige Auszahlung (€)</label>
-                <input id="payout" type="number" value="0" min="0" class="payout-amount">
-               </div>
-               <div>
-                <label>Auszahlung im Jahr:</label>
-                <input id="payoutYear" type="number" value="1" min="1" class="payout-year" placeholder="Jahr">
-               </div>
-           </div>
-        </div>
-        <button type="button" id="addOneTimePayoutBtn" class="add-btn">+</button> <small>Weitere einmalige Auszahlung hinzufügen</small>
-
-        <div class="row" style="margin-top: 1.5rem;"> 
-          <div>
-              <label for="payoutPlanAmount">Auszahlplan Betrag (€)</label>
-              <input id="payoutPlanAmount" type="number" value="0" min="0">
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label for="payoutStartYear">Auszahlplan: Ab Jahr (Laufjahr)</label>
-            <input id="payoutStartYear" type="number" value="1" min="1">
-          </div>
-          <div>
-            <label for="payoutInterval">Auszahlplan: Intervall</label>
-            <select id="payoutInterval">
-              <option value="monthly">Monatlich</option>
-              <option value="yearly">Jährlich</option>
-              <option value="custom">Eigenes Intervall</option>
-            </select>
-          </div>
-          <div>
-            <label for="payoutIntervalDays">Auszahlintervall (Tage)</label>
-            <input id="payoutIntervalDays" type="number" placeholder="Tage" disabled>
-          </div>
-        </div>
-      </div>
-    </div> 
-    <button id="resetBtn" class="btn btn-secondary" style="margin-bottom: 0.75rem;">Alle Werte zurücksetzen</button>
-    <div class="btn-group">
-        <button class="btn active-calc-btn" onclick="calc(false)">Berechnen (Brutto)</button>
-        <button class="btn" onclick="calc(true)">Berechnen (Netto)</button>
-    </div>
-    <div class="tax-note-container">
-        <p class="tax-note">Nettoberechnung abzgl. <span id="taxRateDisplay">26.375</span>% Kapitalertragsteuer + Soli (DE).</p>
-        <button type="button" class="info-btn" data-modal-target="modalTaxInfo" title="Steuerdetails">?</button>
-    </div>
-    <div id="warn"></div>
-  </div>
-
-  <div id="headline" class="headline-container"></div> 
-  <div class="chart-controls">
-    <label for="chartAxisToggle">Diagramm-Achse: Kalenderjahre</label>
-    <input type="checkbox" id="chartAxisToggle">
-  </div>
-  <canvas id="chart"></canvas>
-  <h3 id="compareChartTitle">Vergleich (Gesamtwertentwicklung)</h3>
-
-  <div class="chart-mode-container">
-    <label for="modeSelect">Chartmodus</label>
-    <select id="modeSelect">
-      <option value="compare" selected>Vergleich</option>
-      <option value="historical">Historische Entwicklung</option>
-    </select>
-  </div>
-  <div id="historicalDataContainer" style="display:none; margin-top:0.5rem;">
-    <label for="historicalFile">CSV-Datei mit Preisen</label>
-    <input id="historicalFile" type="file" accept=".csv,text/csv">
-    <label for="historicalData">oder Daten einfügen (Jahr,Preis)</label>
-    <textarea id="historicalData" rows="4" placeholder="2010,100\n2011,110"></textarea>
-
-  <div class="compare-options">
-    <label><input type="checkbox" class="asset-toggle" value="etf" checked><span class="legend-color" style="background-color:rgba(46,204,113,0.8)"></span> ETF</label>
-    <label><input type="checkbox" class="asset-toggle" value="tagesgeld" checked><span class="legend-color" style="background-color:rgba(52,152,219,0.8)"></span> Tagesgeld 2%</label>
-    <label><input type="checkbox" class="asset-toggle" value="bank" checked><span class="legend-color" style="background-color:rgba(149,165,166,0.8)"></span> Bank 0%</label>
-    <label><input type="checkbox" class="asset-toggle" value="bitcoin"><span class="legend-color" style="background-color:rgba(247,147,26,0.8)"></span> Bitcoin</label>
-    <label><input type="checkbox" class="asset-toggle" value="ethereum"><span class="legend-color" style="background-color:rgba(98,126,234,0.8)"></span> Ethereum</label>
-
-  </div>
-  <canvas id="compare"></canvas>
-</div>
-
-<div id="infoModal" class="modal">
-  <div class="modal-content">
-    <span class="modal-close" data-close-modal>&times;</span>
-    <h2 id="modalTitle">Info Titel</h2>
-    <div id="modalBody"><p>Info Inhalt hier...</p></div>
-  </div>
-</div>
-
-
-<script>
 // Global variables for charts
 let chartMain, chartCompare;
 
@@ -436,14 +16,7 @@ const DEFAULT_CURRENCY = 'EUR';
 const CAPITAL_COLOR = 'rgba(52, 152, 219, 0.8)'; 
 const GAIN_COLOR = 'rgba(243, 156, 18, 0.8)';     
 const ANNUAL_PAYOUT_COLOR = 'rgba(39, 174, 96, 0.8)'; 
-const TAX_COLOR_DIAGRAM = 'rgba(231, 76, 60, 0.7)';
-const COMPARE_COLORS = {
-    etf: 'rgba(46,204,113,0.8)',
-    tagesgeld: 'rgba(52,152,219,0.8)',
-    bank: 'rgba(149,165,166,0.8)',
-    bitcoin: 'rgba(247,147,26,0.8)',
-    ethereum: 'rgba(98,126,234,0.8)'
-};
+const TAX_COLOR_DIAGRAM = 'rgba(231, 76, 60, 0.7)'; 
 
 // Chart.js default settings
 Chart.defaults.font.family = 'Inter, sans-serif';
@@ -500,13 +73,8 @@ const modalBodyEl = document.getElementById('modalBody');
 const modalCloseBtns = document.querySelectorAll('[data-close-modal]');
 const resetBtn = document.getElementById('resetBtn');
 const chartAxisToggleEl = document.getElementById('chartAxisToggle');
-const modeSelectEl = document.getElementById('modeSelect');
-const historicalDataContainerEl = document.getElementById('historicalDataContainer');
-const historicalDataEl = document.getElementById('historicalData');
-const historicalFileEl = document.getElementById('historicalFile');
 const toggleWhyInvestBtn = document.getElementById('toggleWhyInvestBtn');
 const whyInvestContent = document.getElementById('whyInvestContent');
-const assetToggleEls = document.querySelectorAll('.asset-toggle');
 
 // Data for informational modals
 const modalData = { 
@@ -840,23 +408,6 @@ steuerSatzEl.addEventListener('input', function() {
     taxRateDisplayEl.textContent = this.value || DEFAULT_STEUERSATZ.toString();
 });
 
-modeSelectEl.addEventListener('change', () => {
-    const show = modeSelectEl.value === 'historical';
-    historicalDataContainerEl.style.display = show ? 'block' : 'none';
-    const activeCalcButton = document.querySelector('.btn-group .btn.active-calc-btn');
-    const isNetto = activeCalcButton && activeCalcButton.textContent.includes('Netto');
-    calc(isNetto);
-});
-
-historicalFileEl.addEventListener('change', () => {
-    const file = historicalFileEl.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = e => { historicalDataEl.value = e.target.result; };
-        reader.readAsText(file);
-    }
-});
-
 function addDynamicEntry(container, typeClassAmount, typeClassYear) {
     const newEntryRow = document.createElement('div');
     newEntryRow.className = 'row dynamic-entry-row';
@@ -915,64 +466,6 @@ function getDynamicEntries(amountClass, yearClass) {
     return entries;
 }
 
-
-function parseHistoricalRates(text) {
-    const lines = text.trim().split(/\n+/);
-    const prices = [];
-    lines.forEach(line => {
-        line = line.trim();
-        if (!line || /^jahr/i.test(line)) return;
-        const parts = line.split(/[,;\t]+/).map(p => p.trim());
-        if (parts.length >= 2) {
-            const price = parseFloat(parts[1]);
-            if (!isNaN(price)) prices.push(price);
-        }
-    });
-    const rates = [];
-    for (let i = 1; i < prices.length; i++) {
-        const r = prices[i] / prices[i - 1] - 1;
-        rates.push(r);
-    }
-    return rates;
-
-function computeComparisonTotal(start, lumpsums, baseRate, rateIncrease, annualRate, years, stopEnabled, stopYear) {
-    let total = start;
-    lumpsums.forEach(lump => { if (lump.amount > 0) total += lump.amount; });
-    let dynRate = baseRate;
-    for (let y = 1; y <= years; y++) {
-        if (y > 1) dynRate *= (1 + rateIncrease);
-        const yearlyContrib = (stopEnabled && y >= stopYear) ? 0 : dynRate * 12;
-        total += yearlyContrib;
-        total *= (1 + annualRate);
-    }
-    return total;
-}
-
-function updateCompareChart(etfTotal, tdTotal, bankTotal, btcTotal, ethTotal, currency) {
-    if (chartCompare) chartCompare.destroy();
-    const selected = Array.from(document.querySelectorAll('.asset-toggle:checked')).map(cb => cb.value);
-    const labels = [];
-    const data = [];
-    const colors = [];
-    if (selected.includes('etf')) { labels.push('ETF (Gesamtwertentwicklung)'); data.push(etfTotal); colors.push(COMPARE_COLORS.etf); }
-    if (selected.includes('tagesgeld')) { labels.push('Tagesgeld 2%'); data.push(tdTotal); colors.push(COMPARE_COLORS.tagesgeld); }
-    if (selected.includes('bank')) { labels.push('Bank 0% (Einzahlungen)'); data.push(bankTotal); colors.push(COMPARE_COLORS.bank); }
-    if (selected.includes('bitcoin')) { labels.push('Bitcoin'); data.push(btcTotal); colors.push(COMPARE_COLORS.bitcoin); }
-    if (selected.includes('ethereum')) { labels.push('Ethereum'); data.push(ethTotal); colors.push(COMPARE_COLORS.ethereum); }
-
-    compareChartTitleEl.textContent = 'Vergleich (Gesamtwertentwicklung)';
-    chartCompare = new Chart(document.getElementById('compare').getContext('2d'), {
-        type: 'bar',
-        data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, barPercentage: 0.7 }] },
-        options: {
-            ...chartOptionsBase,
-            scales: { y: { title: { display: true, text: `Gesamtwert (${currency.toUpperCase()})`}}},
-            plugins: { ...chartOptionsBase.plugins, legend: { display: false } }
-        }
-    });
-
-}
-
 function resetValuesAndCalc() {
     currencyEl.value = DEFAULT_CURRENCY;
     rateEl.value = DEFAULT_MONTHLY_RATE;
@@ -1014,11 +507,6 @@ function resetValuesAndCalc() {
     payoutIntervalDaysEl.value = '';
     payoutIntervalEl.dispatchEvent(new Event('change'));
 
-    modeSelectEl.value = 'compare';
-    historicalDataEl.value = '';
-    historicalFileEl.value = '';
-    historicalDataContainerEl.style.display = 'none';
-
     chartAxisToggleEl.checked = false;
     warnEl.textContent = '';
     headlineEl.innerHTML = '';
@@ -1045,12 +533,6 @@ chartAxisToggleEl.addEventListener('change', () => {
     const isNetto = activeCalcButton && activeCalcButton.textContent.includes('Netto');
     calc(isNetto);
 });
-
-assetToggleEls.forEach(cb => cb.addEventListener('change', () => {
-    const activeCalcButton = document.querySelector('.btn-group .btn.active-calc-btn');
-    const isNetto = activeCalcButton && activeCalcButton.textContent.includes('Netto');
-    calc(isNetto);
-}));
 
 document.querySelectorAll('.btn-group .btn').forEach(button => {
     button.addEventListener('click', function() {
@@ -1087,14 +569,12 @@ function calc(withTax) {
   const payoutPlanStartYear = parseInt(payoutStartYearEl.value) || 0;
   const payoutPlanInterval = payoutIntervalEl.value;
   const payoutPlanIntervalDays = parseInt(payoutIntervalDaysEl.value) || 0;
-  const mode = modeSelectEl.value;
-  const historicalRates = (mode === 'historical') ? parseHistoricalRates(historicalDataEl.value) : [];
 
   // --- 2. Validate inputs ---
   if (totalYears < 1) { warnEl.textContent = 'Bitte Laufzeit ≥ 1 Jahr eingeben.'; return; }
   for (const payout of allOneTimePayouts) {
     let effectiveYear = payout.year;
-    if (globalPayoutYearType === 'kalenderjahr') {
+    if (payout.yearType === 'kalenderjahr') {
         effectiveYear = payout.year - investmentStartCalendarYear + 1;
     }
     if (effectiveYear < 1 || effectiveYear > totalYears) {
@@ -1147,11 +627,7 @@ function calc(withTax) {
     cumulativeGrossDeposits += annualContributions;
     
     const balanceBeforeInterestThisYear = balance;
-    let rateForYear = annualInterestRate;
-    if (historicalRates.length > 0) {
-        rateForYear = historicalRates[y-1] !== undefined ? historicalRates[y-1] : historicalRates[historicalRates.length-1];
-    }
-    balance *= (1 + rateForYear);
+    balance *= (1 + annualInterestRate);
     const wertsteigerungDiesesJahr = balance - balanceBeforeInterestThisYear;
     
     allOneTimePayouts.forEach(payout => {
@@ -1279,20 +755,34 @@ function calc(withTax) {
     }
   });
 
-  const etfGesamtwertentwicklung = finalBalance + cumulativeTotalPayouts;
-  const baseMonthly = parseFloat(rateEl.value) || 0;
+  if (chartCompare) chartCompare.destroy();
+  const etfGesamtwertentwicklung = finalBalance + cumulativeTotalPayouts; 
+  
+  let tdTotal = startCapital;
+  allLumpsums.forEach(lump => { if (lump.amount > 0) tdTotal += lump.amount; });
+  let dynamicRateForTd = parseFloat(rateEl.value) || 0;
+  for (let yCalc = 1; yCalc <= totalYears; yCalc++) {
+    if (yCalc > 1) dynamicRateForTd *= (1 + monthlyRateIncrease);
+    let yearlyContributionForTd = (stopMonthlyRateEnabled && yCalc >= stopMonthlyRateAtYear) ? 0 : dynamicRateForTd * 12;
+    tdTotal += yearlyContributionForTd;
+    tdTotal *= (1 + 0.02);
+  }
+  
+  const compareData = [etfGesamtwertentwicklung, tdTotal, cumulativeGrossDeposits]; 
+  const compareLabels = ['ETF (Gesamtwertentwicklung)', 'Tagesgeld 2%', 'Bank 0% (Einzahlungen)'];
+  compareChartTitleEl.textContent = "Vergleich (Gesamtwertentwicklung)";
 
-  const tdTotal = computeComparisonTotal(startCapital, allLumpsums, baseMonthly, monthlyRateIncrease, 0.02, totalYears, stopMonthlyRateEnabled, stopMonthlyRateAtYear);
-  const btcTotal = computeComparisonTotal(startCapital, allLumpsums, baseMonthly, monthlyRateIncrease, 0.45, totalYears, stopMonthlyRateEnabled, stopMonthlyRateAtYear);
-  const ethTotal = computeComparisonTotal(startCapital, allLumpsums, baseMonthly, monthlyRateIncrease, 0.30, totalYears, stopMonthlyRateEnabled, stopMonthlyRateAtYear);
-
-  updateCompareChart(etfGesamtwertentwicklung, tdTotal, cumulativeGrossDeposits, btcTotal, ethTotal, currency);
+  chartCompare = new Chart(document.getElementById('compare').getContext('2d'), {
+    type: 'bar', 
+    data: { labels: compareLabels, datasets: [{ data: compareData, backgroundColor: ['rgba(46,204,113,0.8)','rgba(52,152,219,0.8)','rgba(149,165,166,0.8)'], barPercentage: 0.7 }] },
+    options: { 
+        ...chartOptionsBase, 
+        scales: { y: { title: { display: true, text: `Gesamtwert (${currency.toUpperCase()})`}}}, 
+        plugins: { ...chartOptionsBase.plugins, legend: { display: false } }
+    }
+  });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     resetValuesAndCalc();
 });
-</script>
-<script src="app.js"></script>
-</body>
-</html>
