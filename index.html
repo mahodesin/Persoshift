@@ -959,7 +959,7 @@ function calc(withTax) {
   if (totalYears < 1) { warnEl.textContent = 'Bitte Laufzeit ≥ 1 Jahr eingeben.'; return; }
   for (const payout of allOneTimePayouts) {
     let effectiveYear = payout.year;
-    if (payout.yearType === 'kalenderjahr') {
+    if (globalPayoutYearType === 'kalenderjahr') {
         effectiveYear = payout.year - investmentStartCalendarYear + 1;
     }
     if (effectiveYear < 1 || effectiveYear > totalYears) {
