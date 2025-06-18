@@ -126,6 +126,8 @@
 
     .chart-controls { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 0.5rem; font-size: 0.9rem;}
     .chart-controls label { margin: 0 0.5rem 0 0; font-weight: normal; }
+    .chart-mode-container { display:flex; align-items:center; gap:0.5rem; margin:0.5rem 0; font-size:0.9rem; }
+    #historicalDataContainer textarea { width:100%; padding:0.5rem; margin-top:0.25rem; }
 
     .modal {
       display: none; position: fixed; z-index: 1000; left: 0; top: 0;
@@ -371,6 +373,19 @@
   </div>
   <canvas id="chart"></canvas>
   <h3 id="compareChartTitle">Vergleich (Gesamtwertentwicklung)</h3>
+  <div class="chart-mode-container">
+    <label for="modeSelect">Chartmodus</label>
+    <select id="modeSelect">
+      <option value="compare" selected>Vergleich</option>
+      <option value="historical">Historische Entwicklung</option>
+    </select>
+  </div>
+  <div id="historicalDataContainer" style="display:none; margin-top:0.5rem;">
+    <label for="historicalFile">CSV-Datei mit Preisen</label>
+    <input id="historicalFile" type="file" accept=".csv,text/csv">
+    <label for="historicalData">oder Daten einfügen (Jahr,Preis)</label>
+    <textarea id="historicalData" rows="4" placeholder="2010,100\n2011,110"></textarea>
+  </div>
   <canvas id="compare"></canvas>
 </div>
 
@@ -458,6 +473,10 @@ const modalBodyEl = document.getElementById('modalBody');
 const modalCloseBtns = document.querySelectorAll('[data-close-modal]');
 const resetBtn = document.getElementById('resetBtn');
 const chartAxisToggleEl = document.getElementById('chartAxisToggle');
+const modeSelectEl = document.getElementById('modeSelect');
+const historicalDataContainerEl = document.getElementById('historicalDataContainer');
+const historicalDataEl = document.getElementById('historicalData');
+const historicalFileEl = document.getElementById('historicalFile');
 const toggleWhyInvestBtn = document.getElementById('toggleWhyInvestBtn');
 const whyInvestContent = document.getElementById('whyInvestContent');
 
@@ -793,6 +812,23 @@ steuerSatzEl.addEventListener('input', function() {
     taxRateDisplayEl.textContent = this.value || DEFAULT_STEUERSATZ.toString();
 });
 
+modeSelectEl.addEventListener('change', () => {
+    const show = modeSelectEl.value === 'historical';
+    historicalDataContainerEl.style.display = show ? 'block' : 'none';
+    const activeCalcButton = document.querySelector('.btn-group .btn.active-calc-btn');
+    const isNetto = activeCalcButton && activeCalcButton.textContent.includes('Netto');
+    calc(isNetto);
+});
+
+historicalFileEl.addEventListener('change', () => {
+    const file = historicalFileEl.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = e => { historicalDataEl.value = e.target.result; };
+        reader.readAsText(file);
+    }
+});
+
 function addDynamicEntry(container, typeClassAmount, typeClassYear) {
     const newEntryRow = document.createElement('div');
     newEntryRow.className = 'row dynamic-entry-row';
@@ -851,6 +887,26 @@ function getDynamicEntries(amountClass, yearClass) {
     return entries;
 }
 
+function parseHistoricalRates(text) {
+    const lines = text.trim().split(/\n+/);
+    const prices = [];
+    lines.forEach(line => {
+        line = line.trim();
+        if (!line || /^jahr/i.test(line)) return;
+        const parts = line.split(/[,;\t]+/).map(p => p.trim());
+        if (parts.length >= 2) {
+            const price = parseFloat(parts[1]);
+            if (!isNaN(price)) prices.push(price);
+        }
+    });
+    const rates = [];
+    for (let i = 1; i < prices.length; i++) {
+        const r = prices[i] / prices[i - 1] - 1;
+        rates.push(r);
+    }
+    return rates;
+}
+
 function resetValuesAndCalc() {
     currencyEl.value = DEFAULT_CURRENCY;
     rateEl.value = DEFAULT_MONTHLY_RATE;
@@ -891,6 +947,11 @@ function resetValuesAndCalc() {
     payoutIntervalEl.value = 'monthly';
     payoutIntervalDaysEl.value = '';
     payoutIntervalEl.dispatchEvent(new Event('change'));
+
+    modeSelectEl.value = 'compare';
+    historicalDataEl.value = '';
+    historicalFileEl.value = '';
+    historicalDataContainerEl.style.display = 'none';
 
     chartAxisToggleEl.checked = false;
     warnEl.textContent = '';
@@ -954,6 +1015,8 @@ function calc(withTax) {
   const payoutPlanStartYear = parseInt(payoutStartYearEl.value) || 0;
   const payoutPlanInterval = payoutIntervalEl.value;
   const payoutPlanIntervalDays = parseInt(payoutIntervalDaysEl.value) || 0;
+  const mode = modeSelectEl.value;
+  const historicalRates = (mode === 'historical') ? parseHistoricalRates(historicalDataEl.value) : [];
 
   // --- 2. Validate inputs ---
   if (totalYears < 1) { warnEl.textContent = 'Bitte Laufzeit ≥ 1 Jahr eingeben.'; return; }
@@ -1012,7 +1075,11 @@ function calc(withTax) {
     cumulativeGrossDeposits += annualContributions;
     
     const balanceBeforeInterestThisYear = balance;
-    balance *= (1 + annualInterestRate);
+    let rateForYear = annualInterestRate;
+    if (historicalRates.length > 0) {
+        rateForYear = historicalRates[y-1] !== undefined ? historicalRates[y-1] : historicalRates[historicalRates.length-1];
+    }
+    balance *= (1 + rateForYear);
     const wertsteigerungDiesesJahr = balance - balanceBeforeInterestThisYear;
     
     allOneTimePayouts.forEach(payout => {
