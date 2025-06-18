@@ -126,6 +126,9 @@
 
     .chart-controls { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 0.5rem; font-size: 0.9rem;}
     .chart-controls label { margin: 0 0.5rem 0 0; font-weight: normal; }
+    .compare-options { display:flex; justify-content:center; gap:1rem; flex-wrap:wrap; margin-bottom:0.5rem; font-size:0.9rem; }
+    .compare-options label { display:flex; align-items:center; gap:0.25rem; }
+    .compare-options .legend-color { width:12px; height:12px; display:inline-block; border-radius:2px; }
 
     .modal {
       display: none; position: fixed; z-index: 1000; left: 0; top: 0;
@@ -371,6 +374,13 @@
   </div>
   <canvas id="chart"></canvas>
   <h3 id="compareChartTitle">Vergleich (Gesamtwertentwicklung)</h3>
+  <div class="compare-options">
+    <label><input type="checkbox" class="asset-toggle" value="etf" checked><span class="legend-color" style="background-color:rgba(46,204,113,0.8)"></span> ETF</label>
+    <label><input type="checkbox" class="asset-toggle" value="tagesgeld" checked><span class="legend-color" style="background-color:rgba(52,152,219,0.8)"></span> Tagesgeld 2%</label>
+    <label><input type="checkbox" class="asset-toggle" value="bank" checked><span class="legend-color" style="background-color:rgba(149,165,166,0.8)"></span> Bank 0%</label>
+    <label><input type="checkbox" class="asset-toggle" value="bitcoin"><span class="legend-color" style="background-color:rgba(247,147,26,0.8)"></span> Bitcoin</label>
+    <label><input type="checkbox" class="asset-toggle" value="ethereum"><span class="legend-color" style="background-color:rgba(98,126,234,0.8)"></span> Ethereum</label>
+  </div>
   <canvas id="compare"></canvas>
 </div>
 
@@ -401,7 +411,14 @@ const DEFAULT_CURRENCY = 'EUR';
 const CAPITAL_COLOR = 'rgba(52, 152, 219, 0.8)'; 
 const GAIN_COLOR = 'rgba(243, 156, 18, 0.8)';     
 const ANNUAL_PAYOUT_COLOR = 'rgba(39, 174, 96, 0.8)'; 
-const TAX_COLOR_DIAGRAM = 'rgba(231, 76, 60, 0.7)'; 
+const TAX_COLOR_DIAGRAM = 'rgba(231, 76, 60, 0.7)';
+const COMPARE_COLORS = {
+    etf: 'rgba(46,204,113,0.8)',
+    tagesgeld: 'rgba(52,152,219,0.8)',
+    bank: 'rgba(149,165,166,0.8)',
+    bitcoin: 'rgba(247,147,26,0.8)',
+    ethereum: 'rgba(98,126,234,0.8)'
+};
 
 // Chart.js default settings
 Chart.defaults.font.family = 'Inter, sans-serif';
@@ -460,6 +477,7 @@ const resetBtn = document.getElementById('resetBtn');
 const chartAxisToggleEl = document.getElementById('chartAxisToggle');
 const toggleWhyInvestBtn = document.getElementById('toggleWhyInvestBtn');
 const whyInvestContent = document.getElementById('whyInvestContent');
+const assetToggleEls = document.querySelectorAll('.asset-toggle');
 
 // Data for informational modals
 const modalData = { 
@@ -851,6 +869,43 @@ function getDynamicEntries(amountClass, yearClass) {
     return entries;
 }
 
+function computeComparisonTotal(start, lumpsums, baseRate, rateIncrease, annualRate, years, stopEnabled, stopYear) {
+    let total = start;
+    lumpsums.forEach(lump => { if (lump.amount > 0) total += lump.amount; });
+    let dynRate = baseRate;
+    for (let y = 1; y <= years; y++) {
+        if (y > 1) dynRate *= (1 + rateIncrease);
+        const yearlyContrib = (stopEnabled && y >= stopYear) ? 0 : dynRate * 12;
+        total += yearlyContrib;
+        total *= (1 + annualRate);
+    }
+    return total;
+}
+
+function updateCompareChart(etfTotal, tdTotal, bankTotal, btcTotal, ethTotal, currency) {
+    if (chartCompare) chartCompare.destroy();
+    const selected = Array.from(document.querySelectorAll('.asset-toggle:checked')).map(cb => cb.value);
+    const labels = [];
+    const data = [];
+    const colors = [];
+    if (selected.includes('etf')) { labels.push('ETF (Gesamtwertentwicklung)'); data.push(etfTotal); colors.push(COMPARE_COLORS.etf); }
+    if (selected.includes('tagesgeld')) { labels.push('Tagesgeld 2%'); data.push(tdTotal); colors.push(COMPARE_COLORS.tagesgeld); }
+    if (selected.includes('bank')) { labels.push('Bank 0% (Einzahlungen)'); data.push(bankTotal); colors.push(COMPARE_COLORS.bank); }
+    if (selected.includes('bitcoin')) { labels.push('Bitcoin'); data.push(btcTotal); colors.push(COMPARE_COLORS.bitcoin); }
+    if (selected.includes('ethereum')) { labels.push('Ethereum'); data.push(ethTotal); colors.push(COMPARE_COLORS.ethereum); }
+
+    compareChartTitleEl.textContent = 'Vergleich (Gesamtwertentwicklung)';
+    chartCompare = new Chart(document.getElementById('compare').getContext('2d'), {
+        type: 'bar',
+        data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, barPercentage: 0.7 }] },
+        options: {
+            ...chartOptionsBase,
+            scales: { y: { title: { display: true, text: `Gesamtwert (${currency.toUpperCase()})`}}},
+            plugins: { ...chartOptionsBase.plugins, legend: { display: false } }
+        }
+    });
+}
+
 function resetValuesAndCalc() {
     currencyEl.value = DEFAULT_CURRENCY;
     rateEl.value = DEFAULT_MONTHLY_RATE;
@@ -918,6 +973,12 @@ chartAxisToggleEl.addEventListener('change', () => {
     const isNetto = activeCalcButton && activeCalcButton.textContent.includes('Netto');
     calc(isNetto);
 });
+
+assetToggleEls.forEach(cb => cb.addEventListener('change', () => {
+    const activeCalcButton = document.querySelector('.btn-group .btn.active-calc-btn');
+    const isNetto = activeCalcButton && activeCalcButton.textContent.includes('Netto');
+    calc(isNetto);
+}));
 
 document.querySelectorAll('.btn-group .btn').forEach(button => {
     button.addEventListener('click', function() {
@@ -1140,32 +1201,14 @@ function calc(withTax) {
     }
   });
 
-  if (chartCompare) chartCompare.destroy();
-  const etfGesamtwertentwicklung = finalBalance + cumulativeTotalPayouts; 
-  
-  let tdTotal = startCapital;
-  allLumpsums.forEach(lump => { if (lump.amount > 0) tdTotal += lump.amount; });
-  let dynamicRateForTd = parseFloat(rateEl.value) || 0;
-  for (let yCalc = 1; yCalc <= totalYears; yCalc++) {
-    if (yCalc > 1) dynamicRateForTd *= (1 + monthlyRateIncrease);
-    let yearlyContributionForTd = (stopMonthlyRateEnabled && yCalc >= stopMonthlyRateAtYear) ? 0 : dynamicRateForTd * 12;
-    tdTotal += yearlyContributionForTd;
-    tdTotal *= (1 + 0.02);
-  }
-  
-  const compareData = [etfGesamtwertentwicklung, tdTotal, cumulativeGrossDeposits]; 
-  const compareLabels = ['ETF (Gesamtwertentwicklung)', 'Tagesgeld 2%', 'Bank 0% (Einzahlungen)'];
-  compareChartTitleEl.textContent = "Vergleich (Gesamtwertentwicklung)";
+  const etfGesamtwertentwicklung = finalBalance + cumulativeTotalPayouts;
+  const baseMonthly = parseFloat(rateEl.value) || 0;
 
-  chartCompare = new Chart(document.getElementById('compare').getContext('2d'), {
-    type: 'bar', 
-    data: { labels: compareLabels, datasets: [{ data: compareData, backgroundColor: ['rgba(46,204,113,0.8)','rgba(52,152,219,0.8)','rgba(149,165,166,0.8)'], barPercentage: 0.7 }] },
-    options: { 
-        ...chartOptionsBase, 
-        scales: { y: { title: { display: true, text: `Gesamtwert (${currency.toUpperCase()})`}}}, 
-        plugins: { ...chartOptionsBase.plugins, legend: { display: false } }
-    }
-  });
+  const tdTotal = computeComparisonTotal(startCapital, allLumpsums, baseMonthly, monthlyRateIncrease, 0.02, totalYears, stopMonthlyRateEnabled, stopMonthlyRateAtYear);
+  const btcTotal = computeComparisonTotal(startCapital, allLumpsums, baseMonthly, monthlyRateIncrease, 0.45, totalYears, stopMonthlyRateEnabled, stopMonthlyRateAtYear);
+  const ethTotal = computeComparisonTotal(startCapital, allLumpsums, baseMonthly, monthlyRateIncrease, 0.30, totalYears, stopMonthlyRateEnabled, stopMonthlyRateAtYear);
+
+  updateCompareChart(etfGesamtwertentwicklung, tdTotal, cumulativeGrossDeposits, btcTotal, ethTotal, currency);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
