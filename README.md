@@ -1,5 +1,12 @@
 # Persoshift
 
+Personal Development Website
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+=======
+
 Persoshift is a simple personal development and finance tool. The main page `index.html` provides an ETF savings plan calculator with charts and information pop-ups.
 
 ## Features
@@ -41,4 +48,5 @@ Contributions are welcome! Feel free to open issues or submit pull requests.
 
 ## Support
 If you run into problems or have questions, open an issue on GitHub.
+
 
