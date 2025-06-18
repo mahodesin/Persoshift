@@ -128,8 +128,13 @@
     .chart-controls { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 0.5rem; font-size: 0.9rem;}
     .chart-controls label { margin: 0 0.5rem 0 0; font-weight: normal; }
 
-    .chart-mode-container { display:flex; align-items:center; gap:0.5rem; margin:0.5rem 0; font-size:0.9rem; }
-    #historicalDataContainer textarea { width:100%; padding:0.5rem; margin-top:0.25rem; }
+    .mode-buttons { display:flex; justify-content:center; gap:1rem; margin:1rem 0; }
+    .mode-btn { padding:0.5rem 1rem; font-weight:600; border:none; border-radius:8px; cursor:pointer; background:var(--secondary-btn-bg); color:#fff; }
+    .mode-btn:hover { background:var(--secondary-btn-hover-bg); }
+    .active-mode-btn { background:var(--primary); }
+    #historicalOptions { margin-bottom:1rem; }
+    footer { text-align:center; font-size:0.8rem; color:var(--muted); margin-top:2rem; }
+    footer a { color:var(--primary); }
 
     .compare-options { display:flex; justify-content:center; gap:1rem; flex-wrap:wrap; margin-bottom:0.5rem; font-size:0.9rem; }
     .compare-options label { display:flex; align-items:center; gap:0.25rem; }
@@ -175,7 +180,26 @@
     <button id="toggleWhyInvestBtn" class="toggle-button">Mehr erfahren</button>
   </div>
 
-  <h1>ETF Sparplan-Rechner</h1>
+  <div id="modeButtons" class="mode-buttons">
+    <button id="btnHistorical" class="mode-btn">Historische Entwicklung</button>
+    <button id="btnCalculator" class="mode-btn active-mode-btn">ETF Sparplan-Rechner</button>
+  </div>
+  <div id="historicalOptions" style="display:none; margin-bottom:1rem;">
+    <div class="row">
+      <div>
+        <label for="assetSelect">Startpreis</label>
+        <select id="assetSelect">
+          <option value="gold">Gold</option>
+          <option value="msci">MSCI World</option>
+          <option value="bitcoin">Bitcoin</option>
+        </select>
+      </div>
+      <div>
+        <label for="assetStartYear">Ab Jahr</label>
+        <input type="number" id="assetStartYear" value="2015" min="2000">
+      </div>
+    </div>
+  </div>
   <div class="card">
     <label for="start">Startkapital (€)</label>
     <input id="start" type="number" value="0" min="0">
@@ -384,19 +408,6 @@
   <canvas id="chart"></canvas>
   <h3 id="compareChartTitle">Vergleich (Gesamtwertentwicklung)</h3>
 
-  <div class="chart-mode-container">
-    <label for="modeSelect">Chartmodus</label>
-    <select id="modeSelect">
-      <option value="compare" selected>Vergleich</option>
-      <option value="historical">Historische Entwicklung</option>
-    </select>
-  </div>
-  <div id="historicalDataContainer" style="display:none; margin-top:0.5rem;">
-    <label for="historicalFile">CSV-Datei mit Preisen</label>
-    <input id="historicalFile" type="file" accept=".csv,text/csv">
-    <label for="historicalData">oder Daten einfügen (Jahr,Preis)</label>
-    <textarea id="historicalData" rows="4" placeholder="2010,100\n2011,110"></textarea>
-
   <div class="compare-options">
     <label><input type="checkbox" class="asset-toggle" value="etf" checked><span class="legend-color" style="background-color:rgba(46,204,113,0.8)"></span> ETF</label>
     <label><input type="checkbox" class="asset-toggle" value="tagesgeld" checked><span class="legend-color" style="background-color:rgba(52,152,219,0.8)"></span> Tagesgeld 2%</label>
@@ -431,6 +442,9 @@ const DEFAULT_ETF_TYPE = "thesaurierend";
 const DEFAULT_BASISZINS = 2.29; 
 const DEFAULT_RATE_INCREASE = 0;
 const DEFAULT_CURRENCY = 'EUR';
+
+let currentMode = 'compare';
+let loadedHistoricalRates = [];
 
 // Chart Colors
 const CAPITAL_COLOR = 'rgba(52, 152, 219, 0.8)'; 
@@ -500,10 +514,11 @@ const modalBodyEl = document.getElementById('modalBody');
 const modalCloseBtns = document.querySelectorAll('[data-close-modal]');
 const resetBtn = document.getElementById('resetBtn');
 const chartAxisToggleEl = document.getElementById('chartAxisToggle');
-const modeSelectEl = document.getElementById('modeSelect');
-const historicalDataContainerEl = document.getElementById('historicalDataContainer');
-const historicalDataEl = document.getElementById('historicalData');
-const historicalFileEl = document.getElementById('historicalFile');
+const btnCalcMode = document.getElementById('btnCalculator');
+const btnHistoricalMode = document.getElementById('btnHistorical');
+const historicalOptionsEl = document.getElementById('historicalOptions');
+const assetSelectEl = document.getElementById('assetSelect');
+const assetStartYearEl = document.getElementById('assetStartYear');
 const toggleWhyInvestBtn = document.getElementById('toggleWhyInvestBtn');
 const whyInvestContent = document.getElementById('whyInvestContent');
 const assetToggleEls = document.querySelectorAll('.asset-toggle');
@@ -840,22 +855,7 @@ steuerSatzEl.addEventListener('input', function() {
     taxRateDisplayEl.textContent = this.value || DEFAULT_STEUERSATZ.toString();
 });
 
-modeSelectEl.addEventListener('change', () => {
-    const show = modeSelectEl.value === 'historical';
-    historicalDataContainerEl.style.display = show ? 'block' : 'none';
-    const activeCalcButton = document.querySelector('.btn-group .btn.active-calc-btn');
-    const isNetto = activeCalcButton && activeCalcButton.textContent.includes('Netto');
-    calc(isNetto);
-});
 
-historicalFileEl.addEventListener('change', () => {
-    const file = historicalFileEl.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = e => { historicalDataEl.value = e.target.result; };
-        reader.readAsText(file);
-    }
-});
 
 function addDynamicEntry(container, typeClassAmount, typeClassYear) {
     const newEntryRow = document.createElement('div');
@@ -916,6 +916,15 @@ function getDynamicEntries(amountClass, yearClass) {
 }
 
 
+function computeRatesFromPrices(prices) {
+    const rates = [];
+    for (let i = 1; i < prices.length; i++) {
+        const r = prices[i] / prices[i - 1] - 1;
+        rates.push(r);
+    }
+    return rates;
+}
+
 function parseHistoricalRates(text) {
     const lines = text.trim().split(/\n+/);
     const prices = [];
@@ -928,12 +937,54 @@ function parseHistoricalRates(text) {
             if (!isNaN(price)) prices.push(price);
         }
     });
-    const rates = [];
-    for (let i = 1; i < prices.length; i++) {
-        const r = prices[i] / prices[i - 1] - 1;
-        rates.push(r);
+    return computeRatesFromPrices(prices);
+}
+
+async function fetchHistoricalRates() {
+    const asset = assetSelectEl.value;
+    const startYear = parseInt(assetStartYearEl.value) || new Date().getFullYear();
+    const apiKey = 'demo';
+    let prices = [];
+    if (asset === 'bitcoin') {
+        const from = Math.floor(new Date(startYear + '-01-01').getTime() / 1000);
+        const to = Math.floor(Date.now() / 1000);
+        const url = `https://api.coingecko.com/api/v3/coins/bitcoin/market_chart/range?vs_currency=usd&from=${from}&to=${to}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const yearMap = {};
+        data.prices.forEach(p => {
+            const y = new Date(p[0]).getFullYear();
+            if (!yearMap[y]) yearMap[y] = [];
+            yearMap[y].push(p[1]);
+        });
+        Object.keys(yearMap).sort().forEach(y => {
+            if (y >= startYear) {
+                const arr = yearMap[y];
+                const avg = arr.reduce((a,b) => a + b, 0) / arr.length;
+                prices.push(avg);
+            }
+        });
+    } else {
+        const symbol = asset === 'gold' ? 'GLD' : 'URTH';
+        const url = `https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY_ADJUSTED&symbol=${symbol}&apikey=${apiKey}`;
+        const res = await fetch(url);
+        const json = await res.json();
+        const series = json['Monthly Adjusted Time Series'] || {};
+        const yearMap = {};
+        Object.keys(series).forEach(date => {
+            const y = parseInt(date.slice(0,4));
+            if (y >= startYear) {
+                if (!yearMap[y]) yearMap[y] = [];
+                yearMap[y].push(parseFloat(series[date]['5. adjusted close']));
+            }
+        });
+        Object.keys(yearMap).sort().forEach(y => {
+            const arr = yearMap[y];
+            const avg = arr.reduce((a,b) => a + b, 0) / arr.length;
+            prices.push(avg);
+        });
     }
-    return rates;
+    loadedHistoricalRates = computeRatesFromPrices(prices);
 }
 
 function computeComparisonTotal(start, lumpsums, baseRate, rateIncrease, annualRate, years, stopEnabled, stopYear) {
@@ -1015,10 +1066,11 @@ function resetValuesAndCalc() {
     payoutIntervalDaysEl.value = '';
     payoutIntervalEl.dispatchEvent(new Event('change'));
 
-    modeSelectEl.value = 'compare';
-    historicalDataEl.value = '';
-    historicalFileEl.value = '';
-    historicalDataContainerEl.style.display = 'none';
+    assetSelectEl.value = 'gold';
+    assetStartYearEl.value = 2015;
+    loadedHistoricalRates = [];
+
+    updateMode('compare');
 
     chartAxisToggleEl.checked = false;
     warnEl.textContent = '';
@@ -1046,6 +1098,29 @@ chartAxisToggleEl.addEventListener('change', () => {
     const isNetto = activeCalcButton && activeCalcButton.textContent.includes('Netto');
     calc(isNetto);
 });
+
+function updateMode(newMode) {
+    currentMode = newMode;
+    btnCalcMode.classList.toggle('active-mode-btn', newMode === 'compare');
+    btnHistoricalMode.classList.toggle('active-mode-btn', newMode === 'historical');
+    historicalOptionsEl.style.display = newMode === 'historical' ? 'block' : 'none';
+    if (newMode === 'historical') {
+        fetchHistoricalRates().then(() => {
+            const activeCalcButton = document.querySelector('.btn-group .btn.active-calc-btn');
+            const isNetto = activeCalcButton && activeCalcButton.textContent.includes('Netto');
+            calc(isNetto);
+        });
+    } else {
+        const activeCalcButton = document.querySelector('.btn-group .btn.active-calc-btn');
+        const isNetto = activeCalcButton && activeCalcButton.textContent.includes('Netto');
+        calc(isNetto);
+    }
+}
+
+btnCalcMode.addEventListener('click', () => updateMode('compare'));
+btnHistoricalMode.addEventListener('click', () => updateMode('historical'));
+assetSelectEl.addEventListener('change', () => updateMode('historical'));
+assetStartYearEl.addEventListener('change', () => updateMode('historical'));
 
 assetToggleEls.forEach(cb => cb.addEventListener('change', () => {
     const activeCalcButton = document.querySelector('.btn-group .btn.active-calc-btn');
@@ -1088,8 +1163,8 @@ function calc(withTax) {
   const payoutPlanStartYear = parseInt(payoutStartYearEl.value) || 0;
   const payoutPlanInterval = payoutIntervalEl.value;
   const payoutPlanIntervalDays = parseInt(payoutIntervalDaysEl.value) || 0;
-  const mode = modeSelectEl.value;
-  const historicalRates = (mode === 'historical') ? parseHistoricalRates(historicalDataEl.value) : [];
+  const mode = currentMode;
+  const historicalRates = (mode === 'historical') ? loadedHistoricalRates : [];
 
   // --- 2. Validate inputs ---
   if (totalYears < 1) { warnEl.textContent = 'Bitte Laufzeit ≥ 1 Jahr eingeben.'; return; }
@@ -1294,6 +1369,10 @@ document.addEventListener('DOMContentLoaded', () => {
     resetValuesAndCalc();
 });
 </script>
-<script src="app.js"></script>
+<!-- Script file removed: logic included inline -->
+<footer>
+  <p>Kursdaten basieren auf externen Quellen wie alphavantage.co, coingecko.com oder Yahoo Finance. Es wird keine Gewähr für die Richtigkeit übernommen.</p>
+  <p><a href="impressum.html">Impressum</a></p>
+</footer>
 </body>
 </html>
