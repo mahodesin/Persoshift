@@ -255,3 +255,44 @@ function getDynamicEntries(amtClass, yearClass) {
   }
   return entries;
 }
+
+// --- Range Slider Sync (Live) ---
+function setupLiveSlider(rangeId, numberId, valueId, suffix) {
+  var range = document.getElementById(rangeId);
+  var number = document.getElementById(numberId);
+  var display = document.getElementById(valueId);
+  if (!range || !number) return;
+
+  function updateDisplay(val) {
+    if (display) {
+      var num = parseFloat(val) || 0;
+      if (suffix === ' Jahre') display.textContent = num + suffix;
+      else display.textContent = num.toLocaleString('de-DE') + suffix;
+    }
+  }
+
+  function liveCalc() {
+    var a = document.querySelector('.btn-group .btn.active-calc-btn');
+    if (typeof calc === 'function') calc(a && a.textContent.indexOf('Netto') !== -1);
+  }
+
+  range.addEventListener('input', function() {
+    number.value = this.value;
+    updateDisplay(this.value);
+    liveCalc();
+  });
+
+  number.addEventListener('input', function() {
+    var val = parseFloat(this.value) || 0;
+    if (val > parseFloat(range.max)) range.max = val;
+    range.value = val;
+    updateDisplay(val);
+  });
+
+  // Initial display
+  updateDisplay(range.value);
+}
+
+setupLiveSlider('startRange', 'start', 'startRangeValue', ' €');
+setupLiveSlider('rateRange', 'rate', 'rateRangeValue', ' €');
+setupLiveSlider('yearsRange', 'years', 'yearsRangeValue', ' Jahre');
