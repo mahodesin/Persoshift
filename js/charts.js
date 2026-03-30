@@ -49,22 +49,66 @@
             }
           });
           window.chartMain.options.animation = { duration: 600, easing: 'easeOutQuart' };
+          var isMobile = window.innerWidth < 600;
           var sx = window.chartMain.options.scales;
-          if (sx && sx.x) { sx.x.grid = { display: false }; sx.x.ticks = Object.assign(sx.x.ticks || {}, { maxRotation: 45, autoSkip: true, maxTicksLimit: 20, color: '#6b7280' }); if (sx.x.title) sx.x.title.color = '#6b7280'; }
-          if (sx && sx.y) { sx.y.grid = { color: 'rgba(42,54,72,0.5)' }; sx.y.ticks = Object.assign(sx.y.ticks || {}, { color: '#6b7280' }); if (sx.y.title) sx.y.title.color = '#6b7280'; }
-          if (sx && sx.y1) { sx.y1.ticks = Object.assign(sx.y1.ticks || {}, { color: '#6b7280' }); if (sx.y1.title) sx.y1.title.color = '#6b7280'; }
+          if (sx && sx.x) {
+            sx.x.grid = { display: false };
+            sx.x.ticks = {
+              maxRotation: isMobile ? 60 : 45,
+              autoSkip: true,
+              maxTicksLimit: isMobile ? 8 : 20,
+              color: '#6b7280',
+              font: { size: isMobile ? 9 : 11 }
+            };
+            if (sx.x.title) { sx.x.title.color = '#6b7280'; sx.x.title.font = { size: isMobile ? 10 : 12 }; }
+          }
+          if (sx && sx.y) {
+            sx.y.grid = { color: 'rgba(42,54,72,0.5)' };
+            sx.y.ticks = {
+              color: '#6b7280',
+              font: { size: isMobile ? 9 : 11 },
+              maxTicksLimit: isMobile ? 6 : 10,
+              callback: function(v) {
+                if (v >= 1000000) return (v/1000000).toFixed(1) + 'M';
+                if (v >= 1000) return (v/1000).toFixed(0) + 'k';
+                return v;
+              }
+            };
+            if (sx.y.title) { sx.y.title.display = !isMobile; }
+          }
+          if (sx && sx.y1) {
+            sx.y1.ticks = {
+              color: '#6b7280',
+              font: { size: isMobile ? 9 : 11 },
+              maxTicksLimit: isMobile ? 5 : 8,
+              callback: function(v) {
+                if (v >= 1000) return (v/1000).toFixed(0) + 'k';
+                return v;
+              }
+            };
+            if (sx.y1.title) { sx.y1.title.display = !isMobile; }
+          }
           window.chartMain.update();
         }
         // Beautify compare chart
         if (window.chartCompare) {
+          var isMob = window.innerWidth < 600;
           window.chartCompare.data.datasets.forEach(function(ds) { ds.borderRadius = 8; ds.borderSkipped = false; ds.barPercentage = 0.6; });
           window.chartCompare.options.animation = { duration: 600, easing: 'easeOutQuart' };
           var sc = window.chartCompare.options.scales;
-          if (sc && sc.x) { sc.x.grid = { display: false }; sc.x.ticks = { color: '#6b7280' }; }
+          if (sc && sc.x) {
+            sc.x.grid = { display: false };
+            sc.x.ticks = { color: '#6b7280', font: { size: isMob ? 9 : 11 } };
+          }
           if (sc && sc.y) {
             sc.y.grid = { color: 'rgba(42,54,72,0.5)' };
-            sc.y.ticks = { color: '#6b7280', callback: function(v) { if (v >= 1e6) return (v/1e6).toFixed(1)+' Mio'; if (v >= 1e3) return (v/1e3).toFixed(0)+'k'; return v; } };
-            if (sc.y.title) sc.y.title.color = '#6b7280';
+            sc.y.ticks = {
+              color: '#6b7280',
+              font: { size: isMob ? 9 : 11 },
+              maxTicksLimit: isMob ? 6 : 10,
+              callback: function(v) { if (v >= 1e6) return (v/1e6).toFixed(1)+'M'; if (v >= 1e3) return (v/1e3).toFixed(0)+'k'; return v; }
+            };
+            if (sc.y.title) { sc.y.title.display = !isMob; }
           }
           window.chartCompare.update();
         }
