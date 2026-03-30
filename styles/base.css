@@ -87,7 +87,6 @@ footer p { margin: 0.15rem 0; }
   .headline-item { font-size: 0.82rem; }
   .main-tabs { flex-wrap: wrap; }
   .main-tab { font-size: 0.8rem; padding: 0.5rem 0.8rem; }
-  canvas { aspect-ratio: 4 / 3; max-height: 320px; min-height: 250px; }
   .slider-value { min-width: 70px; font-size: 0.88rem; }
   .styled-range { height: 8px; }
   .styled-range::-webkit-slider-thumb { width: 26px; height: 26px; }
