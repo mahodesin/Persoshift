@@ -1,0 +1,58 @@
+/* ============================================
+   PersoShift – Theme (Dark Fintech)
+   Change ONLY this file to switch themes!
+   ============================================ */
+
+:root {
+  /* Background layers */
+  --bg: #0c1017;
+  --bg-elevated: #111827;
+  --card-bg: #151c28;
+  --card-bg-hover: #1a2332;
+  --surface: #1e2736;
+
+  /* Borders */
+  --border: #232d3b;
+  --border-light: #2a3648;
+
+  /* Text */
+  --text: #e0e4eb;
+  --text-secondary: #9ca3af;
+  --muted: #6b7280;
+
+  /* Primary (Teal Green) */
+  --primary: #34d399;
+  --primary-hover: #2bb886;
+  --primary-muted: rgba(52, 211, 153, 0.15);
+  --primary-subtle: rgba(52, 211, 153, 0.08);
+
+  /* Accent (Gold) */
+  --accent: #fbbf24;
+  --accent-muted: rgba(251, 191, 36, 0.15);
+
+  /* Status colors */
+  --danger: #f87171;
+  --danger-muted: rgba(248, 113, 113, 0.12);
+  --success: #34d399;
+  --info-bg: rgba(52, 211, 153, 0.06);
+
+  /* Secondary buttons */
+  --secondary-btn-bg: #1e2736;
+  --secondary-btn-hover-bg: #2a3648;
+
+  /* Chart colors */
+  --capital-color: #3b82f6;
+  --gain-color: #fbbf24;
+  --payout-color-annual: rgba(52, 211, 153, 0.8);
+  --tax-color-diagram: rgba(248, 113, 113, 0.7);
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.35);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.4);
+
+  /* Radii */
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-lg: 16px;
+}
