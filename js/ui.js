@@ -256,43 +256,35 @@ function getDynamicEntries(amtClass, yearClass) {
   return entries;
 }
 
-// --- Range Slider Sync (Live) ---
-function setupLiveSlider(rangeId, numberId, valueId, suffix) {
+// --- Range Slider Sync (Live + Editable) ---
+function setupLiveSlider(rangeId, hiddenId, inputId) {
   var range = document.getElementById(rangeId);
-  var number = document.getElementById(numberId);
-  var display = document.getElementById(valueId);
-  if (!range || !number) return;
-
-  function updateDisplay(val) {
-    if (display) {
-      var num = parseFloat(val) || 0;
-      if (suffix === ' Jahre') display.textContent = num + suffix;
-      else display.textContent = num.toLocaleString('de-DE') + suffix;
-    }
-  }
+  var hidden = document.getElementById(hiddenId);
+  var input = document.getElementById(inputId);
+  if (!range || !hidden || !input) return;
 
   function liveCalc() {
     var a = document.querySelector('.btn-group .btn.active-calc-btn');
     if (typeof calc === 'function') calc(a && a.textContent.indexOf('Netto') !== -1);
   }
 
+  // Range slider → update hidden + display input
   range.addEventListener('input', function() {
-    number.value = this.value;
-    updateDisplay(this.value);
+    hidden.value = this.value;
+    input.value = this.value;
     liveCalc();
   });
 
-  number.addEventListener('input', function() {
+  // Editable display input → update hidden + range
+  input.addEventListener('input', function() {
     var val = parseFloat(this.value) || 0;
+    hidden.value = val;
     if (val > parseFloat(range.max)) range.max = val;
     range.value = val;
-    updateDisplay(val);
+    liveCalc();
   });
-
-  // Initial display
-  updateDisplay(range.value);
 }
 
-setupLiveSlider('startRange', 'start', 'startRangeValue', ' €');
-setupLiveSlider('rateRange', 'rate', 'rateRangeValue', ' €');
-setupLiveSlider('yearsRange', 'years', 'yearsRangeValue', ' Jahre');
+setupLiveSlider('startRange', 'start', 'startRangeValue');
+setupLiveSlider('rateRange', 'rate', 'rateRangeValue');
+setupLiveSlider('yearsRange', 'years', 'yearsRangeValue');
