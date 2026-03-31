@@ -36,7 +36,16 @@ function fetchHistoricalRates() {
             resolve();
           }).catch(function() { loadedHistoricalRates = []; resolve(); });
       } else {
-        var sym = asset === 'gold' ? 'GLD' : 'URTH';
+        // For gold, msci, or custom tickers from WKN search
+        var sym;
+        if (asset === 'gold') sym = 'GLD';
+        else if (asset === 'msci') sym = 'URTH';
+        else if (asset.indexOf('custom_') === 0) {
+          // Custom ticker from WKN search
+          var opt = assetSelectEl.options[assetSelectEl.selectedIndex];
+          sym = opt ? (opt.getAttribute('data-ticker') || asset.replace('custom_', '')) : asset.replace('custom_', '');
+        }
+        else sym = asset;
         fetch('https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY_ADJUSTED&symbol=' + sym + '&apikey=demo')
           .then(function(r) { return r.json(); })
           .then(function(json) {
@@ -87,13 +96,26 @@ function updateCompareChart(etfTotal, tdTotal, bankTotal, btcTotal, ethTotal, cu
 // --- Mode Switching ---
 function updateMode(newMode) {
   currentMode = newMode;
-  btnCalcMode.classList.toggle('active-mode-btn', newMode === 'compare');
-  btnHistoricalMode.classList.toggle('active-mode-btn', newMode === 'historical');
+  // Toggle sub-tab active states
+  var bcm = document.getElementById('btnCalculator');
+  var bhm = document.getElementById('btnHistorical');
+  if (bcm && bhm) {
+    bcm.classList.toggle('active-tab', newMode === 'compare');
+    bhm.classList.toggle('active-tab', newMode === 'historical');
+  }
   historicalOptionsEl.style.display = newMode === 'historical' ? 'block' : 'none';
+  // Update badge
+  var badge = document.getElementById('historicalBadge');
+  if (badge && newMode === 'historical') {
+    var sel = assetSelectEl.options[assetSelectEl.selectedIndex];
+    badge.innerHTML = '📊 Aktuell: <strong>' + (sel ? sel.text : '') + '</strong>';
+  }
   if (newMode === 'historical') {
     fetchHistoricalRates().then(function() { triggerCalc(); });
   } else { triggerCalc(); }
 }
+// Make globally accessible for inline onclick
+window.updateMode = updateMode;
 
 function triggerCalc() {
   var a = document.querySelector('.btn-group .btn.active-calc-btn');
@@ -102,7 +124,11 @@ function triggerCalc() {
 
 btnCalcMode.addEventListener('click', function() { updateMode('compare'); });
 btnHistoricalMode.addEventListener('click', function() { updateMode('historical'); });
-assetSelectEl.addEventListener('change', function() { updateMode('historical'); });
+assetSelectEl.addEventListener('change', function() {
+  var badge = document.getElementById('historicalBadge');
+  if (badge) badge.innerHTML = '📊 Aktuell: <strong>' + this.options[this.selectedIndex].text + '</strong>';
+  updateMode('historical');
+});
 assetStartYearEl.addEventListener('change', function() { updateMode('historical'); });
 assetToggleEls.forEach(function(cb) { cb.addEventListener('change', function() { triggerCalc(); }); });
 chartAxisToggleEl.addEventListener('change', function() { triggerCalc(); });
@@ -232,8 +258,6 @@ function calc(withTax) {
   var kEiS = document.getElementById('kpiEinzahlungenSub');
   var kG = document.getElementById('kpiGewinn');
   var kGS = document.getElementById('kpiGewinnSub');
-  var kF = document.getElementById('kpiFaktor');
-  var kFS = document.getElementById('kpiFaktorSub');
   var kSt = document.getElementById('kpiSteuern');
   var kStS = document.getElementById('kpiSteuernSub');
   if (kE) {
@@ -248,11 +272,6 @@ function calc(withTax) {
     kG.textContent = fmt(fGain, currency);
     var pct = cumDep > 0 ? ((fGain / cumDep) * 100).toFixed(1) : '0';
     kGS.textContent = '+' + pct + '%';
-  }
-  if (kF) {
-    var faktor = cumDep > 0 ? ((withTax ? enk : fBal) / cumDep).toFixed(2) : '–';
-    kF.textContent = faktor + 'x';
-    kFS.textContent = '';
   }
   if (kSt) {
     if (withTax) {
