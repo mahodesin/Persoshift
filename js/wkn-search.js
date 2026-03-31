@@ -73,9 +73,49 @@
       if (item.compositeFIGI) html += detailItem('Composite FIGI', item.compositeFIGI);
       if (item.shareClassFIGI) html += detailItem('Share Class FIGI', item.shareClassFIGI);
       html += '</div>';
+      if (item.ticker) {
+        html += '<button class="btn wkn-adopt-btn" style="margin-top:0.75rem;width:auto;padding:0.45rem 1.2rem;font-size:0.82rem;">✓ Übernehmen für historische Analyse</button>';
+      }
       card.innerHTML = html;
+      // Attach adopt button handler
+      var adoptBtn = card.querySelector('.wkn-adopt-btn');
+      if (adoptBtn) {
+        adoptBtn.addEventListener('click', function() {
+          adoptAsset(item.ticker, item.name || item.ticker);
+        });
+      }
       container.appendChild(card);
     });
+  }
+
+  // Adopt a WKN result into historical analysis
+  function adoptAsset(ticker, name) {
+    var sel = document.getElementById('assetSelect');
+    if (!sel) return;
+    // Check if option already exists
+    var exists = false;
+    for (var i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].value === 'custom_' + ticker) { exists = true; sel.selectedIndex = i; break; }
+    }
+    if (!exists) {
+      var opt = document.createElement('option');
+      opt.value = 'custom_' + ticker;
+      opt.textContent = name;
+      opt.setAttribute('data-ticker', ticker);
+      sel.appendChild(opt);
+      sel.value = 'custom_' + ticker;
+    }
+    // Switch to ETF tab and historical mode
+    var rechnerTab = document.getElementById('tab-rechner');
+    var wknTab = document.getElementById('tab-wkn');
+    if (rechnerTab) rechnerTab.classList.add('active-content');
+    if (wknTab) wknTab.classList.remove('active-content');
+    // Update header nav buttons
+    document.querySelectorAll('.header-nav-btn').forEach(function(b, i) {
+      b.classList.toggle('active-header-btn', i === 0);
+    });
+    // Switch to historical mode
+    if (typeof window.updateMode === 'function') window.updateMode('historical');
   }
 
   function renderExamples(container) {
