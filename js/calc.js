@@ -225,6 +225,45 @@ function calc(withTax) {
   headlineEl.innerHTML = h;
   attachModalListeners();
 
+  // KPI Cards
+  var kE = document.getElementById('kpiEndkapital');
+  var kES = document.getElementById('kpiEndkapitalSub');
+  var kEi = document.getElementById('kpiEinzahlungen');
+  var kEiS = document.getElementById('kpiEinzahlungenSub');
+  var kG = document.getElementById('kpiGewinn');
+  var kGS = document.getElementById('kpiGewinnSub');
+  var kF = document.getElementById('kpiFaktor');
+  var kFS = document.getElementById('kpiFaktorSub');
+  var kSt = document.getElementById('kpiSteuern');
+  var kStS = document.getElementById('kpiSteuernSub');
+  if (kE) {
+    kE.textContent = fmt(withTax ? enk : fBal, currency);
+    kES.textContent = withTax ? 'Netto' : 'Brutto';
+  }
+  if (kEi) {
+    kEi.textContent = fmt(cumDep, currency);
+    kEiS.textContent = fmt(parseFloat(rateEl.value) || 0, currency) + '/Monat × ' + totalYears + ' J.';
+  }
+  if (kG) {
+    kG.textContent = fmt(fGain, currency);
+    var pct = cumDep > 0 ? ((fGain / cumDep) * 100).toFixed(1) : '0';
+    kGS.textContent = '+' + pct + '%';
+  }
+  if (kF) {
+    var faktor = cumDep > 0 ? ((withTax ? enk : fBal) / cumDep).toFixed(2) : '–';
+    kF.textContent = faktor + 'x';
+    kFS.textContent = '';
+  }
+  if (kSt) {
+    if (withTax) {
+      kSt.textContent = fmt(cumTax + vk, currency);
+      kStS.textContent = 'VPA + Verkauf';
+    } else {
+      kSt.textContent = '–';
+      kStS.textContent = 'nur bei Netto';
+    }
+  }
+
   // Main chart
   var chartOpts = { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
     plugins: { tooltip: { callbacks: { label: function(ctx) { var l = ctx.dataset.label || ''; if (l) l += ': '; return l + fmt(Math.abs(ctx.parsed.y), currency); } } } },
