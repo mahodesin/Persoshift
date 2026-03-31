@@ -12,187 +12,241 @@
   <link rel="stylesheet" href="styles/components.css">
 </head>
 <body>
+
+<!-- ===== HEADER ===== -->
+<header class="site-header">
+  <div class="header-inner">
+    <div class="logo"><span class="logo-icon">PS</span> PersoShift</div>
+    <nav class="header-nav">
+      <button class="header-nav-btn active-header-btn" onclick="switchTab('tab-rechner',this)">📊 ETF-Rechner</button>
+      <button class="header-nav-btn" onclick="switchTab('tab-wkn',this)">🔍 WKN-Suche</button>
+    </nav>
+  </div>
+</header>
+
+<script>
+function switchTab(id, btn) {
+  document.querySelectorAll('.header-nav-btn').forEach(function(t){t.classList.remove('active-header-btn')});
+  document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active-content')});
+  btn.classList.add('active-header-btn');
+  var el = document.getElementById(id);
+  if(el) el.classList.add('active-content');
+}
+</script>
+
+<!-- ===== HERO ===== -->
+<div class="hero-section">
+  <h1 class="hero-title">Smart investieren,<br>Zukunft sichern</h1>
+  <p class="hero-sub">Berechne dein Vermögen mit dem ETF Sparplan-Rechner, vergleiche Anlageformen und recherchiere Wertpapiere per WKN.<br><span class="hero-credit">by Maho-Design</span></p>
+</div>
+
 <div class="container">
-
-  <h1 class="main-headline">PersoShift – Smart investieren, Zukunft sichern<br><span style="font-size:0.35em;font-weight:400;color:var(--muted);letter-spacing:0.05em;">by Maho-Design</span></h1>
-
-  <nav class="main-tabs">
-    <button class="main-tab active-tab" onclick="switchTab('tab-rechner',this)">📊 ETF-Rechner</button>
-    <button class="main-tab" onclick="switchTab('tab-wkn',this)">🔍 WKN / ISIN Suche</button>
-  </nav>
-  <script>
-  function switchTab(id, btn) {
-    document.querySelectorAll('.main-tab').forEach(function(t){t.classList.remove('active-tab')});
-    document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active-content')});
-    btn.classList.add('active-tab');
-    var el = document.getElementById(id);
-    if(el) el.classList.add('active-content');
-  }
-  </script>
 
   <!-- ===== TAB 1: ETF RECHNER ===== -->
   <div id="tab-rechner" class="tab-content active-content">
 
-    <div class="top-info-section">
-      <h2>💼 Warum investieren?</h2>
-      <div id="whyInvestContent" class="top-info-content"></div>
-      <button id="toggleWhyInvestBtn" class="toggle-button">Mehr erfahren</button>
+    <!-- Sub-tabs -->
+    <div class="main-tabs">
+      <button class="main-tab active-tab" onclick="this.parentElement.querySelectorAll('.main-tab').forEach(function(t){t.classList.remove('active-tab')});this.classList.add('active-tab');">ETF Sparplan-Rechner</button>
+      <button id="btnHistorical" class="main-tab mode-btn">Historische Entwicklung</button>
     </div>
-
-    <div id="modeButtons" class="mode-buttons">
-      <button id="btnHistorical" class="mode-btn">Historische Entwicklung</button>
-      <button id="btnCalculator" class="mode-btn active-mode-btn">ETF Sparplan-Rechner</button>
-    </div>
-
+    <!-- Hidden: needed for JS compatibility -->
+    <button id="btnCalculator" style="display:none"></button>
     <div id="historicalOptions" style="display:none;margin-bottom:1rem">
-      <div class="row">
-        <div><label for="assetSelect">Startpreis</label><select id="assetSelect"><option value="gold">Gold</option><option value="msci">MSCI World</option><option value="bitcoin">Bitcoin</option></select></div>
-        <div><label for="assetStartYear">Ab Jahr</label><input type="number" id="assetStartYear" value="2015" min="2000"></div>
-      </div>
+      <div class="row"><div><label for="assetSelect">Asset</label><select id="assetSelect"><option value="gold">Gold</option><option value="msci">MSCI World</option><option value="bitcoin">Bitcoin</option></select></div><div><label for="assetStartYear">Ab Jahr</label><input type="number" id="assetStartYear" value="2015" min="2000"></div></div>
     </div>
 
-    <div class="card">
-      <div class="row">
-        <div><label for="start">Startkapital (€)</label><input id="start" type="number" value="0" min="0"></div>
-        <div><div class="label-group"><label for="rate">Monatsrate (€)</label><button type="button" class="info-btn" data-modal-target="modalMonthlyRate" title="Wieviel soll ich investieren?">?</button></div><input id="rate" type="number" value="100" min="0"></div>
-        <div><label for="currency">Währung</label><select id="currency"><option value="EUR" selected>Euro (EUR)</option><option value="USD">US-Dollar (USD)</option><option value="JPY">Japanischer Yen (JPY)</option><option value="GBP">Britisches Pfund (GBP)</option><option value="AUD">Australischer Dollar (AUD)</option></select></div>
-      </div>
-      <div class="row">
-        <div><label for="years">Laufzeit (Jahre)</label><input id="years" type="number" value="40" min="1"></div>
-        <div><label for="startCalendarYear">Start-Kalenderjahr</label><input type="number" id="startCalendarYear" value="" placeholder="z.B. 2025"></div>
-      </div>
+    <!-- ===== DASHBOARD GRID ===== -->
+    <div class="dashboard-grid">
 
-      <div>
-        <label for="interestRatePreset">Jahresrendite (%)</label>
-        <div class="interest-rate-group">
-          <select id="interestRatePreset"><option value="10">Optimistisch 10%</option><option value="7.6">Realistisch 7,6%</option><option value="5">Pessimistisch 5%</option><option value="custom">Benutzerdefiniert</option></select>
-          <input type="number" id="interestCustom" step="0.1" min="0" style="display:none" placeholder="z.B. 6.5">
-        </div>
-        <div class="info-button-group">
-          <span class="info-btn-label">S&P500</span><button type="button" class="info-btn" data-modal-target="modalSP500" title="Was ist der S&P 500?">?</button>
-          <span class="info-btn-label" style="margin-left:10px">MSCI World</span><button type="button" class="info-btn" data-modal-target="modalMSCIWorld" title="Was ist der MSCI World?">?</button>
-        </div>
-      </div>
+      <!-- LEFT: Parameters -->
+      <aside class="sidebar card">
+        <h3 class="sidebar-title">⚙ Parameter</h3>
 
-      <div class="form-group" style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)">
-        <div class="row">
-          <div><div class="label-group"><label for="etfType">ETF-Typ:</label><button type="button" class="info-btn" data-modal-target="modalEtfTypeInfo" title="ETF-Typen Erklärung">?</button></div><select id="etfType"><option value="thesaurierend" selected>Thesaurierend</option><option value="ausschuettend">Ausschüttend</option></select></div>
-          <div><div class="label-group"><label for="basiszins">Basiszins p.a. (%):</label><button type="button" class="info-btn" data-modal-target="modalBasiszinsInfo" title="Was ist der Basiszins?">?</button></div><input type="number" id="basiszins" value="2.29" step="0.01" min="0"></div>
+        <div class="compact-row">
+          <div><label for="start">Startkapital (€)</label><input id="start" type="number" value="0" min="0"></div>
+          <div><div class="label-group"><label for="rate">Monatsrate (€)</label><button type="button" class="info-btn" data-modal-target="modalMonthlyRate">?</button></div><input id="rate" type="number" value="100" min="0"></div>
         </div>
-        <div class="row">
-          <div><div class="label-group"><label for="freibetrag">Jährlicher Freibetrag (€):</label><button type="button" class="info-btn" data-modal-target="modalFreibetragInfo" title="Info zum Freibetrag">?</button></div><input type="number" id="freibetrag" value="1000" min="0"></div>
-          <div><div class="label-group"><label for="steuerSatz">Steuersatz (inkl. Soli %):</label><button type="button" class="info-btn" data-modal-target="modalSteuersatzInfo" title="Info zum Steuersatz">?</button></div><input type="number" id="steuerSatz" value="26.375" step="0.001" min="0"></div>
-        </div>
-      </div>
 
-      <div id="advToggle">Erweiterte Optionen ▼</div>
-      <div id="advanced">
-        <div class="form-group">
-          <h4 style="margin-bottom:0.5rem;margin-top:0;font-weight:600;color:var(--primary)">Anpassung Monatsrate</h4>
-          <div class="row">
-            <div><label for="monthlyRateIncrease">Monatsrate um x % p.a. erhöhen</label><input id="monthlyRateIncrease" type="number" value="0" step="0.1" min="0"></div>
-            <div><input type="checkbox" id="stopMonthlyRateEnable"><label for="stopMonthlyRateEnable" class="inline-label">Monatsrate beenden?</label><div id="stopMonthlyRateYearContainer" style="display:none;margin-top:0.5rem"><label for="stopMonthlyRateYear" style="font-size:0.9rem">Stoppen ab Jahr (Laufjahr):</label><input type="number" id="stopMonthlyRateYear" min="1" value="10"></div></div>
+        <div class="compact-row">
+          <div><label for="currency">Währung</label><select id="currency"><option value="EUR" selected>Euro (EUR)</option><option value="USD">USD</option><option value="JPY">JPY</option><option value="GBP">GBP</option><option value="AUD">AUD</option></select></div>
+          <div><label for="years">Laufzeit (Jahre)</label><input id="years" type="number" value="30" min="1"></div>
+        </div>
+
+        <div class="compact-row">
+          <div><label for="startCalendarYear">Start-Jahr</label><input type="number" id="startCalendarYear" value="" placeholder="2026"></div>
+          <div><label for="interestRatePreset">Rendite p.a. (%)</label>
+            <select id="interestRatePreset"><option value="10">Optimistisch 10%</option><option value="7.6">Realistisch 7,6%</option><option value="5">Pessimistisch 5%</option><option value="custom">Eigene</option></select>
+            <input type="number" id="interestCustom" step="0.1" min="0" style="display:none;margin-top:0.25rem" placeholder="z.B. 6.5">
           </div>
         </div>
-        <div class="form-group">
-          <h4 style="margin-bottom:0.5rem;margin-top:0;font-weight:600;color:var(--primary)">Einmalzahlungen</h4>
-          <div id="lumpsumEntriesContainer"><div class="row main-entry-row"><div><label for="lumpsum">Einmalige Einzahlung (€)</label><input id="lumpsum" type="number" value="0" min="0" class="lumpsum-amount"></div><div><label for="lumpyear">Im Jahr (Laufjahr):</label><input id="lumpyear" type="number" value="1" min="1" class="lumpsum-year"></div></div></div>
-          <button type="button" id="addLumpsumBtn" class="add-btn">+</button> <small>Weitere Einmalzahlung</small>
+
+        <div class="info-button-group" style="margin-bottom:0.5rem">
+          <span class="info-btn-label">S&P500</span><button type="button" class="info-btn" data-modal-target="modalSP500">?</button>
+          <span class="info-btn-label" style="margin-left:8px">MSCI World</span><button type="button" class="info-btn" data-modal-target="modalMSCIWorld">?</button>
         </div>
-        <div class="form-group">
-          <h4 style="margin-bottom:0.5rem;margin-top:0;font-weight:600;color:var(--primary)">Datums-Eingabeart</h4>
-          <div class="row"><div><div class="label-group"><label for="payoutYearType">Jahr-Typ für Auszahlungen:</label><button type="button" class="info-btn" data-modal-target="modalDateTypeInfo" title="Laufjahr vs. Kalenderjahr">?</button></div><select id="payoutYearType"><option value="laufjahr" selected>Laufjahr</option><option value="kalenderjahr">Kalenderjahr</option></select></div></div>
+
+        <div class="compact-row">
+          <div><div class="label-group"><label for="etfType">ETF-Typ</label><button type="button" class="info-btn" data-modal-target="modalEtfTypeInfo">?</button></div><select id="etfType"><option value="thesaurierend" selected>Thesaurierend</option><option value="ausschuettend">Ausschüttend</option></select></div>
+          <div><div class="label-group"><label for="basiszins">Basiszins (%)</label><button type="button" class="info-btn" data-modal-target="modalBasiszinsInfo">?</button></div><input type="number" id="basiszins" value="2.29" step="0.01" min="0"></div>
         </div>
-        <div class="form-group">
-          <h4 style="margin-bottom:0.5rem;margin-top:0;font-weight:600;color:var(--primary)">Auszahlungen</h4>
-          <div id="oneTimePayoutEntriesContainer"><div class="row main-entry-row"><div><label>Einmalige Auszahlung (€)</label><input id="payout" type="number" value="0" min="0" class="payout-amount"></div><div><label>Im Jahr:</label><input id="payoutYear" type="number" value="1" min="1" class="payout-year" placeholder="Jahr"></div></div></div>
-          <button type="button" id="addOneTimePayoutBtn" class="add-btn">+</button> <small>Weitere Auszahlung</small>
-          <div class="row" style="margin-top:1.5rem"><div><label for="payoutPlanAmount">Auszahlplan Betrag (€)</label><input id="payoutPlanAmount" type="number" value="0" min="0"></div></div>
-          <div class="row">
-            <div><label for="payoutStartYear">Ab Jahr (Laufjahr)</label><input id="payoutStartYear" type="number" value="1" min="1"></div>
-            <div><label for="payoutInterval">Intervall</label><select id="payoutInterval"><option value="monthly">Monatlich</option><option value="yearly">Jährlich</option><option value="custom">Eigenes Intervall</option></select></div>
-            <div><label for="payoutIntervalDays">Intervall (Tage)</label><input id="payoutIntervalDays" type="number" placeholder="Tage" disabled></div>
+
+        <!-- Advanced Toggle -->
+        <div id="advToggle">▸ Erweiterte Optionen</div>
+        <div id="advanced">
+          <div class="compact-row">
+            <div><div class="label-group"><label for="freibetrag">Freibetrag (€)</label><button type="button" class="info-btn" data-modal-target="modalFreibetragInfo">?</button></div><input type="number" id="freibetrag" value="1000" min="0"></div>
+            <div><div class="label-group"><label for="steuerSatz">Steuersatz (%)</label><button type="button" class="info-btn" data-modal-target="modalSteuersatzInfo">?</button></div><input type="number" id="steuerSatz" value="26.375" step="0.001" min="0"></div>
+          </div>
+          <div class="compact-row">
+            <div><label for="monthlyRateIncrease">Rate +% p.a.</label><input id="monthlyRateIncrease" type="number" value="0" step="0.1" min="0"></div>
+            <div>
+              <input type="checkbox" id="stopMonthlyRateEnable"><label for="stopMonthlyRateEnable" class="inline-label">Rate beenden?</label>
+              <div id="stopMonthlyRateYearContainer" style="display:none;margin-top:0.3rem"><label for="stopMonthlyRateYear" style="font-size:0.75rem">Stopp ab Jahr:</label><input type="number" id="stopMonthlyRateYear" min="1" value="10"></div>
+            </div>
+          </div>
+
+          <h4 class="adv-section-title">Einmalzahlungen</h4>
+          <div id="lumpsumEntriesContainer"><div class="compact-row main-entry-row"><div><label for="lumpsum">Betrag (€)</label><input id="lumpsum" type="number" value="0" min="0" class="lumpsum-amount"></div><div><label for="lumpyear">Jahr</label><input id="lumpyear" type="number" value="1" min="1" class="lumpsum-year"></div></div></div>
+          <button type="button" id="addLumpsumBtn" class="add-btn">+</button>
+
+          <h4 class="adv-section-title">Auszahlungen</h4>
+          <div class="compact-row"><div><div class="label-group"><label for="payoutYearType">Jahr-Typ</label><button type="button" class="info-btn" data-modal-target="modalDateTypeInfo">?</button></div><select id="payoutYearType"><option value="laufjahr" selected>Laufjahr</option><option value="kalenderjahr">Kalenderjahr</option></select></div></div>
+          <div id="oneTimePayoutEntriesContainer"><div class="compact-row main-entry-row"><div><label>Betrag (€)</label><input id="payout" type="number" value="0" min="0" class="payout-amount"></div><div><label>Jahr</label><input id="payoutYear" type="number" value="1" min="1" class="payout-year" placeholder="Jahr"></div></div></div>
+          <button type="button" id="addOneTimePayoutBtn" class="add-btn">+</button>
+
+          <h4 class="adv-section-title">Auszahlplan</h4>
+          <div class="compact-row">
+            <div><label for="payoutPlanAmount">Betrag (€)</label><input id="payoutPlanAmount" type="number" value="0" min="0"></div>
+            <div><label for="payoutStartYear">Ab Jahr</label><input id="payoutStartYear" type="number" value="1" min="1"></div>
+          </div>
+          <div class="compact-row">
+            <div><label for="payoutInterval">Intervall</label><select id="payoutInterval"><option value="monthly">Monatlich</option><option value="yearly">Jährlich</option><option value="custom">Eigenes</option></select></div>
+            <div><label for="payoutIntervalDays">Tage</label><input id="payoutIntervalDays" type="number" placeholder="Tage" disabled></div>
           </div>
         </div>
-      </div>
 
-      <button id="resetBtn" class="btn btn-secondary" style="margin-bottom:0.75rem">Alle Werte zurücksetzen</button>
-      <div class="btn-group">
-        <button class="btn active-calc-btn" onclick="calc(false)">Berechnen (Brutto)</button>
-        <button class="btn" onclick="calc(true)">Berechnen (Netto)</button>
-      </div>
-      <div class="tax-note-container">
-        <p class="tax-note">Nettoberechnung abzgl. <span id="taxRateDisplay">26.375</span>% Kapitalertragsteuer + Soli (DE).</p>
-        <button type="button" class="info-btn" data-modal-target="modalTaxInfo" title="Steuerdetails">?</button>
-      </div>
-      <div id="warn"></div>
-    </div>
-
-    <div id="headline" class="headline-container"></div>
-
-    <!-- Interactive Sliders -->
-    <div class="card slider-card">
-      <div class="slider-row">
-        <label for="startRange">Startkapital</label>
-        <div class="slider-group">
-          <input id="startRange" type="range" min="0" max="100000" step="500" value="0" class="styled-range">
-          <span class="slider-value" id="startRangeValue">0 €</span>
+        <!-- Action Buttons -->
+        <div class="sidebar-actions">
+          <div class="btn-group">
+            <button class="btn active-calc-btn" onclick="calc(false)">📊 Brutto</button>
+            <button class="btn" onclick="calc(true)">📊 Netto</button>
+          </div>
+          <button id="resetBtn" class="btn btn-secondary">↺ Zurücksetzen</button>
         </div>
-        <div class="range-labels"><span>0 €</span><span>100.000 €</span></div>
-      </div>
-      <div class="slider-row">
-        <label for="rateRange">Monatsrate</label>
-        <div class="slider-group">
-          <input id="rateRange" type="range" min="0" max="2000" step="25" value="100" class="styled-range">
-          <span class="slider-value" id="rateRangeValue">100 €</span>
+        <div class="tax-note-container">
+          <p class="tax-note"><strong>Netto-Berechnung:</strong> Abzüglich <span id="taxRateDisplay">26.375</span>% Kapitalertragsteuer + Soli (DE). Teilfreistellung (30% für Aktienfonds) wird berücksichtigt.</p>
+          <button type="button" class="info-btn" data-modal-target="modalTaxInfo">?</button>
         </div>
-        <div class="range-labels"><span>0 €</span><span>2.000 €</span></div>
-      </div>
-      <div class="slider-row">
-        <label for="yearsRange">Laufzeit</label>
-        <div class="slider-group">
-          <input id="yearsRange" type="range" min="1" max="50" step="1" value="40" class="styled-range">
-          <span class="slider-value" id="yearsRangeValue">40 Jahre</span>
+        <div id="warn"></div>
+      </aside>
+
+      <!-- RIGHT: Results -->
+      <main class="main-content">
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+          <div class="kpi-card kpi-primary">
+            <div class="kpi-label">Endkapital <button type="button" class="info-btn" data-modal-target="modalVerkaufsteuerInfo">?</button></div>
+            <div class="kpi-value" id="kpiEndkapital">–</div>
+            <div class="kpi-sub" id="kpiEndkapitalSub">Brutto</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Einzahlungen</div>
+            <div class="kpi-value" id="kpiEinzahlungen">–</div>
+            <div class="kpi-sub" id="kpiEinzahlungenSub"></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Gewinn</div>
+            <div class="kpi-value" id="kpiGewinn">–</div>
+            <div class="kpi-sub kpi-sub-positive" id="kpiGewinnSub"></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Faktor</div>
+            <div class="kpi-value" id="kpiFaktor">–</div>
+            <div class="kpi-sub" id="kpiFaktorSub"></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Steuern (ges.)</div>
+            <div class="kpi-value" id="kpiSteuern">–</div>
+            <div class="kpi-sub" id="kpiSteuernSub"></div>
+          </div>
         </div>
-        <div class="range-labels"><span>1 Jahr</span><span>50 Jahre</span></div>
-      </div>
-    </div>
 
-    <div class="chart-controls"><label for="chartAxisToggle">Kalenderjahre anzeigen</label><input type="checkbox" id="chartAxisToggle"></div>
-    <div class="chart-container"><canvas id="chart"></canvas></div>
+        <!-- Interactive Sliders -->
+        <div class="card slider-card">
+          <div class="slider-row">
+            <label for="startRange">Startkapital</label>
+            <div class="slider-group"><input id="startRange" type="range" min="0" max="100000" step="500" value="0" class="styled-range"><span class="slider-value" id="startRangeValue">0 €</span></div>
+            <div class="range-labels"><span>0 €</span><span>100.000 €</span></div>
+          </div>
+          <div class="slider-row">
+            <label for="rateRange">Monatsrate</label>
+            <div class="slider-group"><input id="rateRange" type="range" min="0" max="2000" step="25" value="100" class="styled-range"><span class="slider-value" id="rateRangeValue">100 €</span></div>
+            <div class="range-labels"><span>0 €</span><span>2.000 €</span></div>
+          </div>
+          <div class="slider-row">
+            <label for="yearsRange">Laufzeit</label>
+            <div class="slider-group"><input id="yearsRange" type="range" min="1" max="50" step="1" value="30" class="styled-range"><span class="slider-value" id="yearsRangeValue">30 Jahre</span></div>
+            <div class="range-labels"><span>1 Jahr</span><span>50 Jahre</span></div>
+          </div>
+        </div>
 
-    <h3 id="compareChartTitle">Vergleich (Gesamtwertentwicklung)</h3>
-    <div class="compare-options">
-      <label><input type="checkbox" class="asset-toggle" value="etf" checked><span class="legend-color" style="background-color:rgba(46,204,113,0.8)"></span> ETF</label>
-      <label><input type="checkbox" class="asset-toggle" value="tagesgeld" checked><span class="legend-color" style="background-color:rgba(52,152,219,0.8)"></span> Tagesgeld 2%</label>
-      <label><input type="checkbox" class="asset-toggle" value="bank" checked><span class="legend-color" style="background-color:rgba(149,165,166,0.8)"></span> Bank 0%</label>
-      <label><input type="checkbox" class="asset-toggle" value="bitcoin"><span class="legend-color" style="background-color:rgba(247,147,26,0.8)"></span> Bitcoin</label>
-      <label><input type="checkbox" class="asset-toggle" value="ethereum"><span class="legend-color" style="background-color:rgba(98,126,234,0.8)"></span> Ethereum</label>
-    </div>
-    <div class="chart-container"><canvas id="compare"></canvas></div>
-  </div>
+        <!-- Main Chart -->
+        <div class="card chart-card">
+          <div class="chart-card-header">
+            <h3 class="chart-title">📈 Vermögensentwicklung</h3>
+            <div class="chart-controls"><label for="chartAxisToggle">Kalenderjahre</label><input type="checkbox" id="chartAxisToggle"></div>
+          </div>
+          <div class="chart-container"><canvas id="chart"></canvas></div>
+        </div>
+
+        <!-- Compare Chart -->
+        <div class="card chart-card">
+          <h3 class="chart-title" id="compareChartTitle">📊 Vergleich Anlageformen</h3>
+          <div class="compare-options">
+            <label><input type="checkbox" class="asset-toggle" value="etf" checked><span class="legend-color" style="background-color:rgba(46,204,113,0.8)"></span> ETF</label>
+            <label><input type="checkbox" class="asset-toggle" value="tagesgeld" checked><span class="legend-color" style="background-color:rgba(52,152,219,0.8)"></span> Tagesgeld 2%</label>
+            <label><input type="checkbox" class="asset-toggle" value="bank" checked><span class="legend-color" style="background-color:rgba(149,165,166,0.8)"></span> Bank 0%</label>
+            <label><input type="checkbox" class="asset-toggle" value="bitcoin"><span class="legend-color" style="background-color:rgba(247,147,26,0.8)"></span> Bitcoin</label>
+            <label><input type="checkbox" class="asset-toggle" value="ethereum"><span class="legend-color" style="background-color:rgba(98,126,234,0.8)"></span> Ethereum</label>
+          </div>
+          <div class="chart-container"><canvas id="compare"></canvas></div>
+        </div>
+
+        <!-- Why Invest (moved to bottom) -->
+        <div class="top-info-section">
+          <h2>💼 Warum investieren?</h2>
+          <div id="whyInvestContent" class="top-info-content"></div>
+          <button id="toggleWhyInvestBtn" class="toggle-button">Mehr erfahren</button>
+        </div>
+
+      </main>
+    </div><!-- end dashboard-grid -->
+
+    <!-- Hidden headline for calc.js compatibility -->
+    <div id="headline" class="headline-container" style="display:none"></div>
+
+  </div><!-- end tab-rechner -->
 
   <!-- ===== TAB 2: WKN SUCHE ===== -->
   <div id="tab-wkn" class="tab-content">
     <div class="card">
       <h2 style="margin-top:0;color:var(--primary)">🔍 Wertpapier-Suche</h2>
       <p style="color:var(--muted);margin-bottom:1rem">Suche nach WKN, ISIN oder Ticker um Details zu finden.</p>
-      <div class="wkn-search-box">
-        <input type="text" id="wknSearchInput" placeholder="z.B. A0RPWH, IE00B4L5Y983 oder MSCI World..." autocomplete="off">
-        <button id="wknSearchBtn" onclick="searchWKN()">Suchen</button>
-      </div>
+      <div class="wkn-search-box"><input type="text" id="wknSearchInput" placeholder="z.B. A0RPWH, IE00B4L5Y983..." autocomplete="off"><button id="wknSearchBtn" onclick="searchWKN()">Suchen</button></div>
       <div id="wknSearchStatus"></div>
       <div id="wknSearchResults"></div>
       <div id="wknRecentSearches" class="wkn-recent-searches" style="display:none"><h4>Letzte Suchen</h4><div id="wknRecentList" class="wkn-recent-list"></div></div>
     </div>
   </div>
 
-</div>
+</div><!-- end container -->
 
 <!-- Modal -->
 <div id="infoModal" class="modal"><div class="modal-content"><span class="modal-close" data-close-modal>&times;</span><h2 id="modalTitle">Info</h2><div id="modalBody"><p></p></div></div></div>
 
-<!-- Scripts: Order matters! -->
+<!-- Scripts -->
 <script src="js/data.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/calc.js"></script>
