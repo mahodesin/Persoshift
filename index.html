@@ -47,12 +47,11 @@ function switchTab(id, btn) {
 
     <!-- Sub-tabs -->
     <div class="main-tabs">
-      <button class="main-tab active-tab" onclick="this.parentElement.querySelectorAll('.main-tab').forEach(function(t){t.classList.remove('active-tab')});this.classList.add('active-tab');">ETF Sparplan-Rechner</button>
-      <button id="btnHistorical" class="main-tab mode-btn">Historische Entwicklung</button>
+      <button id="btnCalculator" class="main-tab active-tab" onclick="updateMode('compare')">ETF Sparplan-Rechner</button>
+      <button id="btnHistorical" class="main-tab" onclick="updateMode('historical')">Historische Entwicklung</button>
     </div>
-    <!-- Hidden: needed for JS compatibility -->
-    <button id="btnCalculator" style="display:none"></button>
     <div id="historicalOptions" style="display:none;margin-bottom:1rem">
+      <div class="historical-badge" id="historicalBadge">📊 Aktuell: <strong>Gold</strong></div>
       <div class="row"><div><label for="assetSelect">Asset</label><select id="assetSelect"><option value="gold">Gold</option><option value="msci">MSCI World</option><option value="bitcoin">Bitcoin</option></select></div><div><label for="assetStartYear">Ab Jahr</label><input type="number" id="assetStartYear" value="2015" min="2000"></div></div>
     </div>
 
@@ -64,42 +63,34 @@ function switchTab(id, btn) {
         <h3 class="sidebar-title">⚙ Parameter</h3>
 
         <div class="compact-row">
-          <div><label for="start">Startkapital (€)</label><input id="start" type="number" value="0" min="0"></div>
-          <div><div class="label-group"><label for="rate">Monatsrate (€)</label><button type="button" class="info-btn" data-modal-target="modalMonthlyRate">?</button></div><input id="rate" type="number" value="100" min="0"></div>
-        </div>
-
-        <div class="compact-row">
           <div><label for="currency">Währung</label><select id="currency"><option value="EUR" selected>Euro (EUR)</option><option value="USD">USD</option><option value="JPY">JPY</option><option value="GBP">GBP</option><option value="AUD">AUD</option></select></div>
-          <div><label for="years">Laufzeit (Jahre)</label><input id="years" type="number" value="30" min="1"></div>
+          <div><label for="startCalendarYear">Start-Jahr</label><input type="number" id="startCalendarYear" value="" placeholder="2026"></div>
         </div>
 
         <div class="compact-row">
-          <div><label for="startCalendarYear">Start-Jahr</label><input type="number" id="startCalendarYear" value="" placeholder="2026"></div>
           <div><label for="interestRatePreset">Rendite p.a. (%)</label>
             <select id="interestRatePreset"><option value="10">Optimistisch 10%</option><option value="7.6">Realistisch 7,6%</option><option value="5">Pessimistisch 5%</option><option value="custom">Eigene</option></select>
             <input type="number" id="interestCustom" step="0.1" min="0" style="display:none;margin-top:0.25rem" placeholder="z.B. 6.5">
           </div>
-        </div>
-
-        <div class="info-button-group" style="margin-bottom:0.5rem">
-          <span class="info-btn-label">S&P500</span><button type="button" class="info-btn" data-modal-target="modalSP500">?</button>
-          <span class="info-btn-label" style="margin-left:8px">MSCI World</span><button type="button" class="info-btn" data-modal-target="modalMSCIWorld">?</button>
-        </div>
-
-        <div class="compact-row">
           <div><div class="label-group"><label for="etfType">ETF-Typ</label><button type="button" class="info-btn" data-modal-target="modalEtfTypeInfo">?</button></div><select id="etfType"><option value="thesaurierend" selected>Thesaurierend</option><option value="ausschuettend">Ausschüttend</option></select></div>
-          <div><div class="label-group"><label for="basiszins">Basiszins (%)</label><button type="button" class="info-btn" data-modal-target="modalBasiszinsInfo">?</button></div><input type="number" id="basiszins" value="2.29" step="0.01" min="0"></div>
         </div>
+
+        <!-- Hidden inputs synced by sliders -->
+        <input id="start" type="hidden" value="0">
+        <input id="rate" type="hidden" value="100">
+        <input id="years" type="hidden" value="30">
 
         <!-- Advanced Toggle -->
         <div id="advToggle">▸ Erweiterte Optionen</div>
         <div id="advanced">
           <div class="compact-row">
+            <div><div class="label-group"><label for="basiszins">Basiszins (%)</label><button type="button" class="info-btn" data-modal-target="modalBasiszinsInfo">?</button></div><input type="number" id="basiszins" value="2.29" step="0.01" min="0"></div>
             <div><div class="label-group"><label for="freibetrag">Freibetrag (€)</label><button type="button" class="info-btn" data-modal-target="modalFreibetragInfo">?</button></div><input type="number" id="freibetrag" value="1000" min="0"></div>
-            <div><div class="label-group"><label for="steuerSatz">Steuersatz (%)</label><button type="button" class="info-btn" data-modal-target="modalSteuersatzInfo">?</button></div><input type="number" id="steuerSatz" value="26.375" step="0.001" min="0"></div>
           </div>
           <div class="compact-row">
+            <div><div class="label-group"><label for="steuerSatz">Steuersatz (%)</label><button type="button" class="info-btn" data-modal-target="modalSteuersatzInfo">?</button></div><input type="number" id="steuerSatz" value="26.375" step="0.001" min="0"></div>
             <div><label for="monthlyRateIncrease">Rate +% p.a.</label><input id="monthlyRateIncrease" type="number" value="0" step="0.1" min="0"></div>
+          </div>
             <div>
               <input type="checkbox" id="stopMonthlyRateEnable"><label for="stopMonthlyRateEnable" class="inline-label">Rate beenden?</label>
               <div id="stopMonthlyRateYearContainer" style="display:none;margin-top:0.3rem"><label for="stopMonthlyRateYear" style="font-size:0.75rem">Stopp ab Jahr:</label><input type="number" id="stopMonthlyRateYear" min="1" value="10"></div>
@@ -162,11 +153,6 @@ function switchTab(id, btn) {
             <div class="kpi-sub kpi-sub-positive" id="kpiGewinnSub"></div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-label">Faktor</div>
-            <div class="kpi-value" id="kpiFaktor">–</div>
-            <div class="kpi-sub" id="kpiFaktorSub"></div>
-          </div>
-          <div class="kpi-card">
             <div class="kpi-label">Steuern (ges.)</div>
             <div class="kpi-value" id="kpiSteuern">–</div>
             <div class="kpi-sub" id="kpiSteuernSub"></div>
@@ -176,18 +162,18 @@ function switchTab(id, btn) {
         <!-- Interactive Sliders -->
         <div class="card slider-card">
           <div class="slider-row">
-            <label for="startRange">Startkapital</label>
-            <div class="slider-group"><input id="startRange" type="range" min="0" max="100000" step="500" value="0" class="styled-range"><span class="slider-value" id="startRangeValue">0 €</span></div>
+            <label for="startRange">Startkapital (€)</label>
+            <div class="slider-group"><input id="startRange" type="range" min="0" max="100000" step="500" value="0" class="styled-range"><input type="number" id="startRangeValue" class="slider-input" value="0" min="0"></div>
             <div class="range-labels"><span>0 €</span><span>100.000 €</span></div>
           </div>
           <div class="slider-row">
-            <label for="rateRange">Monatsrate</label>
-            <div class="slider-group"><input id="rateRange" type="range" min="0" max="2000" step="25" value="100" class="styled-range"><span class="slider-value" id="rateRangeValue">100 €</span></div>
+            <label for="rateRange">Monatsrate (€)</label>
+            <div class="slider-group"><input id="rateRange" type="range" min="0" max="2000" step="25" value="100" class="styled-range"><input type="number" id="rateRangeValue" class="slider-input" value="100" min="0"></div>
             <div class="range-labels"><span>0 €</span><span>2.000 €</span></div>
           </div>
           <div class="slider-row">
-            <label for="yearsRange">Laufzeit</label>
-            <div class="slider-group"><input id="yearsRange" type="range" min="1" max="50" step="1" value="30" class="styled-range"><span class="slider-value" id="yearsRangeValue">30 Jahre</span></div>
+            <label for="yearsRange">Laufzeit (Jahre)</label>
+            <div class="slider-group"><input id="yearsRange" type="range" min="1" max="50" step="1" value="30" class="styled-range"><input type="number" id="yearsRangeValue" class="slider-input" value="30" min="1"></div>
             <div class="range-labels"><span>1 Jahr</span><span>50 Jahre</span></div>
           </div>
         </div>
