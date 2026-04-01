@@ -4,6 +4,9 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+html { color-scheme: dark; }
+html[data-theme="light"] { color-scheme: light; }
+
 body {
   margin: 0;
   background: var(--bg);
@@ -12,6 +15,7 @@ body {
   line-height: 1.6;
   font-size: 15px;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s, color 0.3s;
 }
 
 input[type="checkbox"],
