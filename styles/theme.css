@@ -1,10 +1,9 @@
 /* ============================================
    PersoShift – Theme Variables
-   Dark = default, Light = data-theme="light"
    ============================================ */
 
 /* --- Dark Theme (Default) --- */
-:root, [data-theme="dark"] {
+:root {
   --bg: #0c1017;
   --bg-elevated: #111827;
   --card-bg: #151c28;
@@ -39,11 +38,12 @@
   --radius-lg: 16px;
 }
 
-/* --- Light Theme --- */
-[data-theme="light"] {
+/* --- Light Theme (higher specificity with html[]) --- */
+html[data-theme="light"],
+html[data-theme="light"] body {
   --bg: #f0f3f7;
-  --bg-elevated: #fff;
-  --card-bg: #fff;
+  --bg-elevated: #ffffff;
+  --card-bg: #ffffff;
   --card-bg-hover: #f8f9fb;
   --surface: #e8ecf1;
   --border: #d1d8e0;
