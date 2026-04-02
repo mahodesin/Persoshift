@@ -31,11 +31,15 @@
     if(!exists){var opt=document.createElement('option');opt.value='custom_'+ticker;opt.textContent=name+' ('+ticker+')';opt.setAttribute('data-ticker',ticker);sel.appendChild(opt);sel.value='custom_'+ticker;}
     // Update badge
     var badge=document.getElementById('historicalBadge');
-    if(badge)badge.innerHTML='Aktuell: <strong>'+name+' ('+ticker+')</strong>';
+    if(badge)badge.innerHTML='Aktuell: <strong>'+esc(name)+' ('+esc(ticker)+')</strong>';
+    // Clear search status
+    var st=document.getElementById('wknSearchStatus');
+    if(st){st.textContent='✓ '+name+' übernommen. Lade historische Daten...';st.className='';}
     // Trigger historical fetch
     if(typeof window.updateMode==='function')window.updateMode('historical');
-    // Scroll to top
-    window.scrollTo({top:0,behavior:'smooth'});
+    // Scroll to chart area
+    var chart=document.querySelector('.chart-card');
+    if(chart)chart.scrollIntoView({behavior:'smooth',block:'start'});
   }
 
   function renderExamples(container){
