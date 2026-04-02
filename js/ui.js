@@ -1,290 +1,73 @@
-// ============================================
-// PersoShift – UI (DOM, Modals, Toggles, Inputs)
-// Depends on: data.js
-// ============================================
+// PersoShift – UI
+var chartMain = null, chartCompare = null, currentMode = 'compare', loadedHistoricalRates = [];
+function fmt(n, c) { c = c || 'EUR'; var l = 'de-DE'; if (c==='USD') l='en-US'; if (c==='GBP') l='en-GB'; if (c==='JPY') l='ja-JP'; return n.toLocaleString(l, {style:'currency',currency:c,maximumFractionDigits:0}); }
 
-// --- Global state ---
-var chartMain = null;
-var chartCompare = null;
-var currentMode = 'compare';
-var loadedHistoricalRates = [];
+// DOM refs
+var advToggle=document.getElementById('advToggle'), advBox=document.getElementById('advanced'), currencyEl=document.getElementById('currency');
+var rateEl=document.getElementById('rate'), monthlyRateIncreaseEl=document.getElementById('monthlyRateIncrease'), yearsEl=document.getElementById('years');
+var startCalendarYearEl=document.getElementById('startCalendarYear'), interestRatePresetEl=document.getElementById('interestRatePreset'), interestCustomEl=document.getElementById('interestCustom');
+var startEl=document.getElementById('start'), warnEl=document.getElementById('warn'), headlineEl=document.getElementById('headline');
+var compareChartTitleEl=document.getElementById('compareChartTitle'), etfTypeEl=document.getElementById('etfType');
+var freibetragEl=document.getElementById('freibetrag'), steuerSatzEl=document.getElementById('steuerSatz'), basiszinsEl=document.getElementById('basiszins');
+var taxRateDisplayEl=document.getElementById('taxRateDisplay'), payoutYearTypeEl=document.getElementById('payoutYearType');
+var stopMonthlyRateEnableEl=document.getElementById('stopMonthlyRateEnable'), stopMonthlyRateYearContainerEl=document.getElementById('stopMonthlyRateYearContainer');
+var stopMonthlyRateYearEl=document.getElementById('stopMonthlyRateYear'), payoutPlanAmountEl=document.getElementById('payoutPlanAmount');
+var payoutStartYearEl=document.getElementById('payoutStartYear'), payoutIntervalEl=document.getElementById('payoutInterval'), payoutIntervalDaysEl=document.getElementById('payoutIntervalDays');
+var lumpsumEntriesContainer=document.getElementById('lumpsumEntriesContainer'), oneTimePayoutEntriesContainer=document.getElementById('oneTimePayoutEntriesContainer');
+var infoModal=document.getElementById('infoModal'), modalTitleEl=document.getElementById('modalTitle'), modalBodyEl=document.getElementById('modalBody');
+var resetBtn=document.getElementById('resetBtn'), chartAxisToggleEl=document.getElementById('chartAxisToggle');
+var btnCalcMode=document.getElementById('btnCalculator'), btnHistoricalMode=document.getElementById('btnHistorical');
+var historicalSectionEl=document.getElementById('historicalSection'), assetSelectEl=document.getElementById('assetSelect');
+var assetStartYearEl=document.getElementById('assetStartYear'), historicalStartYearEl=document.getElementById('historicalStartYear');
+var toggleWhyInvestBtn=document.getElementById('toggleWhyInvestBtn'), whyInvestContent=document.getElementById('whyInvestContent');
+var assetToggleEls=document.querySelectorAll('.asset-toggle');
 
-// --- Currency formatter ---
-function fmt(n, currency) {
-  currency = currency || 'EUR';
-  var locale = 'de-DE';
-  if (currency === 'USD') locale = 'en-US';
-  if (currency === 'GBP') locale = 'en-GB';
-  if (currency === 'JPY') locale = 'ja-JP';
-  if (currency === 'AUD') locale = 'en-AU';
-  return n.toLocaleString(locale, { style: 'currency', currency: currency, maximumFractionDigits: 0 });
-}
+// Sync historicalStartYear → hidden assetStartYear
+if (historicalStartYearEl) historicalStartYearEl.addEventListener('change', function() { if (assetStartYearEl) assetStartYearEl.value = this.value; });
 
-// --- DOM References ---
-var advToggle = document.getElementById('advToggle');
-var advBox = document.getElementById('advanced');
-var currencyEl = document.getElementById('currency');
-var rateEl = document.getElementById('rate');
-var monthlyRateIncreaseEl = document.getElementById('monthlyRateIncrease');
-var yearsEl = document.getElementById('years');
-var startCalendarYearEl = document.getElementById('startCalendarYear');
-var interestRatePresetEl = document.getElementById('interestRatePreset');
-var interestCustomEl = document.getElementById('interestCustom');
-var startEl = document.getElementById('start');
-var warnEl = document.getElementById('warn');
-var headlineEl = document.getElementById('headline');
-var compareChartTitleEl = document.getElementById('compareChartTitle');
-var etfTypeEl = document.getElementById('etfType');
-var freibetragEl = document.getElementById('freibetrag');
-var steuerSatzEl = document.getElementById('steuerSatz');
-var basiszinsEl = document.getElementById('basiszins');
-var taxRateDisplayEl = document.getElementById('taxRateDisplay');
-var payoutYearTypeEl = document.getElementById('payoutYearType');
-var stopMonthlyRateEnableEl = document.getElementById('stopMonthlyRateEnable');
-var stopMonthlyRateYearContainerEl = document.getElementById('stopMonthlyRateYearContainer');
-var stopMonthlyRateYearEl = document.getElementById('stopMonthlyRateYear');
-var payoutPlanAmountEl = document.getElementById('payoutPlanAmount');
-var payoutStartYearEl = document.getElementById('payoutStartYear');
-var payoutIntervalEl = document.getElementById('payoutInterval');
-var payoutIntervalDaysEl = document.getElementById('payoutIntervalDays');
-var lumpsumEntriesContainer = document.getElementById('lumpsumEntriesContainer');
-var oneTimePayoutEntriesContainer = document.getElementById('oneTimePayoutEntriesContainer');
-var infoModal = document.getElementById('infoModal');
-var modalTitleEl = document.getElementById('modalTitle');
-var modalBodyEl = document.getElementById('modalBody');
-var resetBtn = document.getElementById('resetBtn');
-var chartAxisToggleEl = document.getElementById('chartAxisToggle');
-var btnCalcMode = document.getElementById('btnCalculator');
-var btnHistoricalMode = document.getElementById('btnHistorical');
-var historicalOptionsEl = document.getElementById('historicalOptions');
-var assetSelectEl = document.getElementById('assetSelect');
-var assetStartYearEl = document.getElementById('assetStartYear');
-var toggleWhyInvestBtn = document.getElementById('toggleWhyInvestBtn');
-var whyInvestContent = document.getElementById('whyInvestContent');
-var assetToggleEls = document.querySelectorAll('.asset-toggle');
-
-// --- Modal Functions ---
-function openModal(targetId) {
-  var data = modalData[targetId];
-  if (data && infoModal) {
-    modalTitleEl.textContent = data.title;
-    modalBodyEl.innerHTML = data.content;
-    infoModal.style.display = 'flex';
-  }
-}
-function closeModal() {
-  if (infoModal) infoModal.style.display = 'none';
-}
-
-// Attach modal listeners (safe to call multiple times)
-function attachModalListeners() {
-  document.querySelectorAll('[data-modal-target]').forEach(function(btn) {
-    if (btn.getAttribute('data-ml') !== '1') {
-      btn.addEventListener('click', function() { openModal(this.getAttribute('data-modal-target')); });
-      btn.setAttribute('data-ml', '1');
-    }
-  });
-}
+// Modals
+function openModal(id) { var d=modalData[id]; if(d&&infoModal){modalTitleEl.textContent=d.title;modalBodyEl.innerHTML=d.content;infoModal.style.display='flex';} }
+function closeModal() { if(infoModal) infoModal.style.display='none'; }
+function attachModalListeners() { document.querySelectorAll('[data-modal-target]').forEach(function(b){ if(b.getAttribute('data-ml')!=='1'){b.addEventListener('click',function(){openModal(this.getAttribute('data-modal-target'));});b.setAttribute('data-ml','1');}}); }
 attachModalListeners();
-document.querySelectorAll('[data-close-modal]').forEach(function(btn) { btn.addEventListener('click', closeModal); });
-window.addEventListener('click', function(e) { if (e.target === infoModal) closeModal(); });
-window.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeModal(); });
+document.querySelectorAll('[data-close-modal]').forEach(function(b){b.addEventListener('click',closeModal);});
+window.addEventListener('click',function(e){if(e.target===infoModal)closeModal();});
+window.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal();});
 
-// --- "Why Invest" Section (FULL TEXT) ---
+// Why Invest
 function updateWhyInvestContent() {
-  var currency = 'EUR';
-  var interestRate = 0.07;
-  var balance1 = 0;
-  for (var i = 0; i < 40 * 12; i++) { balance1 += 100; balance1 *= (1 + interestRate / 12); }
-  var totalDeposits1 = 100 * 12 * 40;
-  var finalValue1 = balance1;
-  var monthlyInterestGross = (finalValue1 * interestRate) / 12;
-  var monthlyInterestNet = monthlyInterestGross * (1 - 0.26375);
-  var r_a = interestRate / 12, n_a = 20 * 12;
-  var monthlyAnnuity = finalValue1 * (r_a * Math.pow(1 + r_a, n_a)) / (Math.pow(1 + r_a, n_a) - 1);
-  var futureValueFactor = (Math.pow(1 + r_a, n_a) - 1) / r_a;
-  var requiredSaving = finalValue1 / futureValueFactor;
-  var balance5 = 50000;
-  for (var j = 0; j < 20 * 12; j++) { balance5 += 100; balance5 *= (1 + interestRate / 12); }
-
-  whyInvestContent.innerHTML =
-    '<div class="info-point"><p>Die gesetzliche Rente allein reicht oft nicht aus, um den Lebensstandard im Alter zu halten. Private Vorsorge ist unerlässlich.</p>' +
-    '<button class="point-toggle" data-target="details-1">1. Die Lücke der gesetzlichen Rente</button>' +
-    '<div id="details-1" class="point-details"><p>Die Renteninformation zeigt nur die Bruttorente – nicht, was am Ende wirklich auf dem Konto landet.</p>' +
-    '<h4>Beispiel: Kassierer mit 1.800 € brutto / 40 Jahre Arbeit</h4>' +
-    '<ul><li>Bruttorente (2050): ca. 1.415 €/Monat</li>' +
-    '<li>Abzüge:<ul class="sub-list"><li>Krankenversicherung (~ 8 %)</li><li>Pflegeversicherung (~ 3,4 – 4 %)</li><li>Steuern (ab 2040: 100 % steuerpflichtig)</li></ul></li>' +
-    '<li>Netto-Rente: ca. 1.050 – 1.150 €/Monat</li>' +
-    '<li>Reale Kaufkraft (bei 2 % Inflation): <strong class="warning">nur ca. 650 – 750 €/Monat</strong></li></ul>' +
-    '<p><strong class="warning">➡ Fazit: Selbst nach einem Leben voller Arbeit droht Altersarmut.</strong></p></div></div>' +
-
-    '<div class="info-point"><p>Selbst kleine, regelmäßige Beträge können über lange Zeiträume durch den Zinseszinseffekt zu einem erheblichen Vermögen anwachsen.</p>' +
-    '<button class="point-toggle" data-target="details-2">2. ETF-Sparplan: 100 €/Monat über 40 Jahre</button>' +
-    '<div id="details-2" class="point-details"><ul>' +
-    '<li>Einzahlung insgesamt: ' + fmt(totalDeposits1, currency) + '</li>' +
-    '<li>Erwartetes Depotvolumen (bei 7 % Jahresrendite): <strong class="highlight">' + fmt(finalValue1, currency) + '</strong></li></ul>' +
-    '<p>Damit hast du dir neben der gesetzlichen Rente ein weiteres Polster aufgebaut.</p></div></div>' +
-
-    '<div class="info-point"><p>Ein aufgebautes Vermögen bietet finanzielle Flexibilität, sei es für eine frühere Rente, größere Anschaffungen oder einfach zur Absicherung.</p>' +
-    '<button class="point-toggle" data-target="details-3">3. Was bringt das konkret?</button>' +
-    '<div id="details-3" class="point-details">' +
-    '<h4>Zusatz-Rente durch Entnahmen (Kapital erhalten)</h4><ul>' +
-    '<li>Kapital nach 40 Jahren: ' + fmt(finalValue1, currency) + '</li>' +
-    '<li>Monatlicher Nettozins (nach Steuern): <strong class="highlight">' + fmt(monthlyInterestNet, currency) + '</strong></li></ul>' +
-    '<p>Du kannst dir diesen Betrag pro Monat auszahlen lassen, ohne dein Kapital anzutasten.</p>' +
-    '<h4>Alternativ: Kapital planmäßig aufbrauchen (nach 20 Jahren leer)</h4><ul>' +
-    '<li>Monatliche Entnahme (brutto): <strong class="highlight">' + fmt(monthlyAnnuity, currency) + '</strong></li></ul>' +
-    '<p>Nach 20 Jahren ist das Depot leer – vollständig in monatliche Zahlungen umgewandelt.</p></div></div>' +
-
-    '<div class="info-point"><p>Auch ein späterer Einstieg lohnt sich. Höhere Sparraten oder ein Startkapital können die kürzere Laufzeit ausgleichen.</p>' +
-    '<button class="point-toggle" data-target="details-4">4. Beispiele für ältere Anleger</button>' +
-    '<div id="details-4" class="point-details">' +
-    '<h4>Du bist 40 Jahre alt und willst mit 60 finanziell sorgenfrei sein?</h4><ul>' +
-    '<li>Ziel: ' + fmt(finalValue1, currency) + ' Kapital im Depot.</li>' +
-    '<li>Nötige monatliche Sparrate (20 Jahre, 7% p.a.): <strong class="highlight">' + fmt(requiredSaving, currency) + '</strong></li></ul>' +
-    '<h4>Oder: 50.000 € Startkapital + 100 € monatlich</h4><ul>' +
-    '<li>Ergebnis nach 20 Jahren: <strong class="highlight">' + fmt(balance5, currency) + '</strong></li></ul></div></div>' +
-
-    '<div class="info-point"><button class="point-toggle" data-target="details-5">5. Was bringt das konkret (Zusammenfassung)?</button>' +
-    '<div id="details-5" class="point-details"><ul>' +
-    '<li>Rente allein reicht oft nicht – private Vorsorge ist essenziell.</li>' +
-    '<li>ETF-Sparplan ab 100 € im Monat kann nach 40 Jahren über <strong class="highlight">' + fmt(240000, currency) + '</strong> bringen.</li>' +
-    '<li>Das ermöglicht z.B. über <strong class="highlight">' + fmt(1000, currency) + ' Netto extra</strong> pro Monat auf lange Sicht.</li>' +
-    '<li>Wer früh und regelmäßig beginnt, gewinnt im Alter Freiheit, Sicherheit und Würde.</li></ul></div></div>';
+  var c='EUR',r=0.07,b1=0;for(var i=0;i<40*12;i++){b1+=100;b1*=(1+r/12);}var td=100*12*40,fv=b1;
+  var mig=(fv*r)/12,min=mig*(1-0.26375);var ra=r/12,na=20*12;var ma=fv*(ra*Math.pow(1+ra,na))/(Math.pow(1+ra,na)-1);
+  var fvf=(Math.pow(1+ra,na)-1)/ra,rs=fv/fvf;var b5=50000;for(var j=0;j<20*12;j++){b5+=100;b5*=(1+r/12);}
+  whyInvestContent.innerHTML='<div class="info-point"><p>Die gesetzliche Rente reicht oft nicht aus.</p><button class="point-toggle" data-target="d1">1. Die Lücke der gesetzlichen Rente</button><div id="d1" class="point-details"><h4>Beispiel: Kassierer mit 1.800 € brutto / 40 Jahre</h4><ul><li>Bruttorente: ca. 1.415 €/Monat</li><li>Abzüge: KV (~8%), PV (~3,4%), Steuern</li><li>Netto: ca. 1.050–1.150 €</li><li>Kaufkraft (2% Inflation): <strong class="warning">650–750 €</strong></li></ul><p class="warning"><strong>➡ Altersarmut droht.</strong></p></div></div>'+
+  '<div class="info-point"><p>Kleine Beträge wachsen durch Zinseszins enorm.</p><button class="point-toggle" data-target="d2">2. 100 €/Monat über 40 Jahre</button><div id="d2" class="point-details"><ul><li>Einzahlung: '+fmt(td,c)+'</li><li>Depot (7% p.a.): <strong class="highlight">'+fmt(fv,c)+'</strong></li></ul></div></div>'+
+  '<div class="info-point"><button class="point-toggle" data-target="d3">3. Was bringt das konkret?</button><div id="d3" class="point-details"><h4>Kapital erhalten</h4><ul><li>Monatlicher Nettozins: <strong class="highlight">'+fmt(min,c)+'</strong></li></ul><h4>Kapital aufbrauchen (20 Jahre)</h4><ul><li>Monatlich: <strong class="highlight">'+fmt(ma,c)+'</strong></li></ul></div></div>'+
+  '<div class="info-point"><button class="point-toggle" data-target="d4">4. Späterer Einstieg</button><div id="d4" class="point-details"><h4>Ziel: '+fmt(fv,c)+' mit 60</h4><ul><li>Nötige Rate (20J, 7%): <strong class="highlight">'+fmt(rs,c)+'</strong></li></ul><h4>50.000 € Start + 100 €/Monat</h4><ul><li>Nach 20 Jahren: <strong class="highlight">'+fmt(b5,c)+'</strong></li></ul></div></div>'+
+  '<div class="info-point"><button class="point-toggle" data-target="d5">5. Zusammenfassung</button><div id="d5" class="point-details"><ul><li>Rente allein reicht nicht.</li><li>100 €/Monat → über <strong class="highlight">'+fmt(240000,c)+'</strong> nach 40 Jahren.</li><li>Wer früh beginnt, gewinnt Freiheit.</li></ul></div></div>';
+}
+if(toggleWhyInvestBtn&&whyInvestContent){
+  toggleWhyInvestBtn.addEventListener('click',function(){var h=!whyInvestContent.style.display||whyInvestContent.style.display==='none';if(h){updateWhyInvestContent();whyInvestContent.style.display='block';}else{whyInvestContent.style.display='none';}toggleWhyInvestBtn.textContent=h?'Weniger anzeigen':'Mehr erfahren';});
+  whyInvestContent.addEventListener('click',function(e){if(e.target.classList.contains('point-toggle')){var d=document.getElementById(e.target.getAttribute('data-target'));if(d){e.target.classList.toggle('open');d.style.display=d.style.display==='block'?'none':'block';}}});
 }
 
-if (toggleWhyInvestBtn && whyInvestContent) {
-  toggleWhyInvestBtn.addEventListener('click', function() {
-    var isHidden = !whyInvestContent.style.display || whyInvestContent.style.display === 'none';
-    if (isHidden) { updateWhyInvestContent(); whyInvestContent.style.display = 'block'; }
-    else { whyInvestContent.style.display = 'none'; }
-    toggleWhyInvestBtn.textContent = isHidden ? 'Weniger anzeigen' : 'Mehr erfahren';
-  });
-  whyInvestContent.addEventListener('click', function(e) {
-    if (e.target.classList.contains('point-toggle')) {
-      var details = document.getElementById(e.target.getAttribute('data-target'));
-      if (details) { e.target.classList.toggle('open'); details.style.display = details.style.display === 'block' ? 'none' : 'block'; }
-    }
-  });
-}
+// UI listeners
+function updateCurrencyLabels(code){var s={EUR:'€',USD:'$',JPY:'¥',GBP:'£',AUD:'A$'};var sym=s[code]||code;for(var id in labelTexts){var l=document.querySelector('label[for="'+id+'"]');if(l)l.textContent=labelTexts[id]+' ('+sym+')';}}
+advToggle.onclick=function(){var o=advBox.style.display==='block';advBox.style.display=o?'none':'block';advToggle.textContent=o?'▸ Erweiterte Optionen':'▾ Erweiterte Optionen';};
+interestRatePresetEl.addEventListener('change',function(){interestCustomEl.style.display=this.value==='custom'?'block':'none';if(this.value==='custom'){interestCustomEl.focus();if(!interestCustomEl.value)interestCustomEl.value="7.6";}});
+currencyEl.addEventListener('change',function(){updateCurrencyLabels(currencyEl.value);var a=document.querySelector('.btn-group .btn.active-calc-btn');calc(a&&a.textContent.indexOf('Netto')!==-1);});
+stopMonthlyRateEnableEl.addEventListener('change',function(){stopMonthlyRateYearContainerEl.style.display=this.checked?'block':'none';});
+payoutIntervalEl.addEventListener('change',function(){payoutIntervalDaysEl.disabled=this.value!=='custom';if(this.value==='custom'&&!payoutIntervalDaysEl.value)payoutIntervalDaysEl.value='30';else if(this.value!=='custom')payoutIntervalDaysEl.value='';});
+steuerSatzEl.addEventListener('input',function(){taxRateDisplayEl.textContent=this.value||DEFAULT_STEUERSATZ.toString();});
+document.querySelectorAll('.btn-group .btn').forEach(function(b){b.addEventListener('click',function(){document.querySelectorAll('.btn-group .btn').forEach(function(x){x.classList.remove('active-calc-btn');});this.classList.add('active-calc-btn');});});
 
-// --- Currency Label Updates ---
-function updateCurrencyLabels(code) {
-  var symbols = { EUR: '€', USD: '$', JPY: '¥', GBP: '£', AUD: 'A$' };
-  var sym = symbols[code] || code;
-  for (var id in labelTexts) {
-    var lbl = document.querySelector('label[for="' + id + '"]');
-    if (lbl) lbl.textContent = labelTexts[id] + ' (' + sym + ')';
-  }
-}
+// Dynamic entries
+function addDynamicEntry(c,ac,yc){var r=document.createElement('div');r.className='compact-row dynamic-entry-row';var d1=document.createElement('div'),i1=document.createElement('input');i1.type='number';i1.min='0';i1.value='0';i1.className=ac;d1.appendChild(i1);var d2=document.createElement('div'),i2=document.createElement('input');i2.type='number';i2.min='1';i2.value='1';i2.className=yc;i2.placeholder='Jahr';d2.appendChild(i2);r.appendChild(d1);r.appendChild(d2);var rb=document.createElement('button');rb.type='button';rb.textContent='X';rb.className='remove-btn';rb.addEventListener('click',function(){r.remove();});r.appendChild(rb);c.appendChild(r);}
+document.getElementById('addLumpsumBtn').addEventListener('click',function(){addDynamicEntry(lumpsumEntriesContainer,'lumpsum-amount','lumpsum-year');});
+document.getElementById('addOneTimePayoutBtn').addEventListener('click',function(){addDynamicEntry(oneTimePayoutEntriesContainer,'payout-amount','payout-year');});
+function getDynamicEntries(ac,yc){var a=document.querySelectorAll('.'+ac),y=document.querySelectorAll('.'+yc),e=[];for(var i=0;i<a.length;i++){var am=parseFloat(a[i].value)||0,yr=parseInt(y[i].value)||0;if(am>0&&yr>0)e.push({amount:am,year:yr});}return e;}
 
-// --- UI Event Listeners ---
-advToggle.onclick = function() {
-  var open = advBox.style.display === 'block';
-  advBox.style.display = open ? 'none' : 'block';
-  advToggle.textContent = open ? 'Erweiterte Optionen ▼' : 'Erweiterte Optionen ▲';
-};
-
-interestRatePresetEl.addEventListener('change', function() {
-  interestCustomEl.style.display = this.value === 'custom' ? 'block' : 'none';
-  if (this.value === 'custom') { interestCustomEl.focus(); if (!interestCustomEl.value) interestCustomEl.value = "7.6"; }
-});
-
-currencyEl.addEventListener('change', function() {
-  updateCurrencyLabels(currencyEl.value);
-  var a = document.querySelector('.btn-group .btn.active-calc-btn');
-  calc(a && a.textContent.indexOf('Netto') !== -1);
-});
-
-stopMonthlyRateEnableEl.addEventListener('change', function() {
-  stopMonthlyRateYearContainerEl.style.display = this.checked ? 'block' : 'none';
-});
-
-payoutIntervalEl.addEventListener('change', function() {
-  payoutIntervalDaysEl.disabled = this.value !== 'custom';
-  if (this.value === 'custom' && !payoutIntervalDaysEl.value) payoutIntervalDaysEl.value = '30';
-  else if (this.value !== 'custom') payoutIntervalDaysEl.value = '';
-});
-
-steuerSatzEl.addEventListener('input', function() {
-  taxRateDisplayEl.textContent = this.value || DEFAULT_STEUERSATZ.toString();
-});
-
-document.querySelectorAll('.btn-group .btn').forEach(function(button) {
-  button.addEventListener('click', function() {
-    document.querySelectorAll('.btn-group .btn').forEach(function(b) { b.classList.remove('active-calc-btn'); });
-    this.classList.add('active-calc-btn');
-  });
-});
-
-// --- Dynamic Entries ---
-function addDynamicEntry(container, amtClass, yearClass) {
-  var row = document.createElement('div');
-  row.className = 'row dynamic-entry-row';
-  var d1 = document.createElement('div');
-  var inp1 = document.createElement('input');
-  inp1.type = 'number'; inp1.min = '0'; inp1.value = '0'; inp1.className = amtClass;
-  d1.appendChild(inp1);
-  var d2 = document.createElement('div');
-  var inp2 = document.createElement('input');
-  inp2.type = 'number'; inp2.min = '1'; inp2.value = '1'; inp2.className = yearClass; inp2.placeholder = 'Jahr';
-  d2.appendChild(inp2);
-  row.appendChild(d1); row.appendChild(d2);
-  var rb = document.createElement('button');
-  rb.type = 'button'; rb.textContent = 'X'; rb.className = 'remove-btn';
-  rb.addEventListener('click', function() { row.remove(); });
-  row.appendChild(rb);
-  container.appendChild(row);
-}
-
-document.getElementById('addLumpsumBtn').addEventListener('click', function() {
-  addDynamicEntry(lumpsumEntriesContainer, 'lumpsum-amount', 'lumpsum-year');
-});
-document.getElementById('addOneTimePayoutBtn').addEventListener('click', function() {
-  addDynamicEntry(oneTimePayoutEntriesContainer, 'payout-amount', 'payout-year');
-});
-
-function getDynamicEntries(amtClass, yearClass) {
-  var amounts = document.querySelectorAll('.' + amtClass);
-  var years = document.querySelectorAll('.' + yearClass);
-  var entries = [];
-  for (var i = 0; i < amounts.length; i++) {
-    var a = parseFloat(amounts[i].value) || 0;
-    var y = parseInt(years[i].value) || 0;
-    if (a > 0 && y > 0) entries.push({ amount: a, year: y });
-  }
-  return entries;
-}
-
-// --- Range Slider Sync (Live + Editable) ---
-function setupLiveSlider(rangeId, hiddenId, inputId) {
-  var range = document.getElementById(rangeId);
-  var hidden = document.getElementById(hiddenId);
-  var input = document.getElementById(inputId);
-  if (!range || !hidden || !input) return;
-
-  function liveCalc() {
-    var a = document.querySelector('.btn-group .btn.active-calc-btn');
-    if (typeof calc === 'function') calc(a && a.textContent.indexOf('Netto') !== -1);
-  }
-
-  // Range slider → update hidden + display input
-  range.addEventListener('input', function() {
-    hidden.value = this.value;
-    input.value = this.value;
-    liveCalc();
-  });
-
-  // Editable display input → update hidden + range
-  input.addEventListener('input', function() {
-    var val = parseFloat(this.value) || 0;
-    hidden.value = val;
-    if (val > parseFloat(range.max)) range.max = val;
-    range.value = val;
-    liveCalc();
-  });
-}
-
-setupLiveSlider('startRange', 'start', 'startRangeValue');
-setupLiveSlider('rateRange', 'rate', 'rateRangeValue');
-setupLiveSlider('yearsRange', 'years', 'yearsRangeValue');
+// Slider sync
+function setupLiveSlider(rId,hId,iId){var r=document.getElementById(rId),h=document.getElementById(hId),inp=document.getElementById(iId);if(!r||!h||!inp)return;function lc(){var a=document.querySelector('.btn-group .btn.active-calc-btn');if(typeof calc==='function')calc(a&&a.textContent.indexOf('Netto')!==-1);}r.addEventListener('input',function(){h.value=this.value;inp.value=this.value;lc();});inp.addEventListener('input',function(){var v=parseFloat(this.value)||0;h.value=v;if(v>parseFloat(r.max))r.max=v;r.value=v;lc();});}
+setupLiveSlider('startRange','start','startRangeValue');
+setupLiveSlider('rateRange','rate','rateRangeValue');
+setupLiveSlider('yearsRange','years','yearsRangeValue');
