@@ -18,12 +18,9 @@ var infoModal=document.getElementById('infoModal'), modalTitleEl=document.getEle
 var resetBtn=document.getElementById('resetBtn'), chartAxisToggleEl=document.getElementById('chartAxisToggle');
 var btnCalcMode=document.getElementById('btnCalculator'), btnHistoricalMode=document.getElementById('btnHistorical');
 var historicalSectionEl=document.getElementById('historicalSection'), assetSelectEl=document.getElementById('assetSelect');
-var assetStartYearEl=document.getElementById('assetStartYear'), historicalStartYearEl=document.getElementById('historicalStartYear');
+var assetStartYearEl=document.getElementById('assetStartYear');
 var toggleWhyInvestBtn=document.getElementById('toggleWhyInvestBtn'), whyInvestContent=document.getElementById('whyInvestContent');
 var assetToggleEls=document.querySelectorAll('.asset-toggle');
-
-// Sync historicalStartYear → hidden assetStartYear
-if (historicalStartYearEl) historicalStartYearEl.addEventListener('change', function() { if (assetStartYearEl) assetStartYearEl.value = this.value; });
 
 // Modals
 function openModal(id) { var d=modalData[id]; if(d&&infoModal){modalTitleEl.textContent=d.title;modalBodyEl.innerHTML=d.content;infoModal.style.display='flex';} }
