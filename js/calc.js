@@ -3,20 +3,25 @@ Chart.defaults.font.family='Inter,sans-serif';Chart.defaults.font.size=13;Chart.
 
 function computeRatesFromPrices(p){var r=[];for(var i=1;i<p.length;i++)r.push(p[i]/p[i-1]-1);return r;}
 
-function fetchHistoricalRates(){
+var loadedHistoricalPrices=[];// {year, price} array
+
+function fetchHistoricalPrices(){
   var asset=assetSelectEl.value;
-  var startYear=parseInt(assetStartYearEl.value)||2015;
-  var prices=[];
+  var startYear=parseInt(startCalendarYearEl.value)||2015;
+  var bisEl=document.getElementById('bisCalendarYear');
+  var endYear=parseInt(bisEl?bisEl.value:0)||new Date().getFullYear();
+  if(assetStartYearEl)assetStartYearEl.value=startYear;
+  var prices=[];loadedHistoricalPrices=[];
   return new Promise(function(resolve){
     try{
       if(asset==='bitcoin'){
-        var from=Math.floor(new Date(startYear+'-01-01').getTime()/1000),to=Math.floor(Date.now()/1000);
+        var from=Math.floor(new Date(startYear+'-01-01').getTime()/1000),to=Math.floor(new Date(endYear+'-12-31').getTime()/1000);
         fetch('https://api.coingecko.com/api/v3/coins/bitcoin/market_chart/range?vs_currency=usd&from='+from+'&to='+to)
         .then(function(r){return r.json();}).then(function(d){
           var ym={};(d.prices||[]).forEach(function(p){var y=new Date(p[0]).getFullYear();if(!ym[y])ym[y]=[];ym[y].push(p[1]);});
-          Object.keys(ym).sort().forEach(function(y){if(y>=startYear)prices.push(ym[y].reduce(function(a,b){return a+b;},0)/ym[y].length);});
+          Object.keys(ym).sort().forEach(function(y){if(y>=startYear&&y<=endYear){var avg=ym[y].reduce(function(a,b){return a+b;},0)/ym[y].length;prices.push(avg);loadedHistoricalPrices.push({year:parseInt(y),price:avg});}});
           loadedHistoricalRates=computeRatesFromPrices(prices);resolve();
-        }).catch(function(){loadedHistoricalRates=[];resolve();});
+        }).catch(function(){loadedHistoricalRates=[];loadedHistoricalPrices=[];resolve();});
       } else {
         var sym;
         if(asset==='gold')sym='GLD';else if(asset==='msci')sym='URTH';
@@ -25,12 +30,12 @@ function fetchHistoricalRates(){
         fetch('https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY_ADJUSTED&symbol='+sym+'&apikey=demo')
         .then(function(r){return r.json();}).then(function(json){
           var s=json['Monthly Adjusted Time Series']||{},ym={};
-          Object.keys(s).forEach(function(d){var y=parseInt(d.slice(0,4));if(y>=startYear){if(!ym[y])ym[y]=[];ym[y].push(parseFloat(s[d]['5. adjusted close']));}});
-          Object.keys(ym).sort().forEach(function(y){prices.push(ym[y].reduce(function(a,b){return a+b;},0)/ym[y].length);});
+          Object.keys(s).forEach(function(d){var y=parseInt(d.slice(0,4));if(y>=startYear&&y<=endYear){if(!ym[y])ym[y]=[];ym[y].push(parseFloat(s[d]['5. adjusted close']));}});
+          Object.keys(ym).sort().forEach(function(y){var avg=ym[y].reduce(function(a,b){return a+b;},0)/ym[y].length;prices.push(avg);loadedHistoricalPrices.push({year:parseInt(y),price:avg});});
           loadedHistoricalRates=computeRatesFromPrices(prices);resolve();
-        }).catch(function(){loadedHistoricalRates=[];resolve();});
+        }).catch(function(){loadedHistoricalRates=[];loadedHistoricalPrices=[];resolve();});
       }
-    }catch(e){loadedHistoricalRates=[];resolve();}
+    }catch(e){loadedHistoricalRates=[];loadedHistoricalPrices=[];resolve();}
   });
 }
 
@@ -58,10 +63,20 @@ function updateMode(newMode){
   if(bc)bc.classList.toggle('active-tab',newMode==='compare');
   if(bh)bh.classList.toggle('active-tab',newMode==='historical');
   if(historicalSectionEl)historicalSectionEl.style.display=newMode==='historical'?'block':'none';
+  // Swap Start-Jahr ↔ Ab Jahr label
+  var lbl=document.getElementById('startYearLabel');
+  var bisW=document.getElementById('bisJahrWrapper');
+  if(lbl)lbl.textContent=newMode==='historical'?'Ab Jahr':'Start-Jahr';
+  if(bisW)bisW.style.display=newMode==='historical'?'block':'none';
+  // Set default Bis Jahr to current year
+  var bisEl=document.getElementById('bisCalendarYear');
+  if(bisEl&&!bisEl.value)bisEl.value=new Date().getFullYear();
+  // Sync startCalendarYear to assetStartYear
+  if(assetStartYearEl)assetStartYearEl.value=startCalendarYearEl.value||2015;
   // Update badge
   var badge=document.getElementById('historicalBadge');
   if(badge&&newMode==='historical'){var s=assetSelectEl.options[assetSelectEl.selectedIndex];badge.innerHTML='Aktuell: <strong>'+(s?s.text:'')+'</strong>';}
-  if(newMode==='historical'){fetchHistoricalRates().then(function(){triggerCalc();});}else{triggerCalc();}
+  if(newMode==='historical'){fetchHistoricalPrices().then(function(){triggerCalc();});}else{loadedHistoricalRates=[];loadedHistoricalPrices=[];triggerCalc();}
 }
 window.updateMode=updateMode;
 
@@ -72,10 +87,14 @@ btnHistoricalMode.addEventListener('click',function(){updateMode('historical');}
 assetSelectEl.addEventListener('change',function(){
   var badge=document.getElementById('historicalBadge');
   if(badge)badge.innerHTML='Aktuell: <strong>'+this.options[this.selectedIndex].text+'</strong>';
-  if(assetStartYearEl&&historicalStartYearEl)assetStartYearEl.value=historicalStartYearEl.value;
-  updateMode('historical');
+  if(currentMode==='historical')fetchHistoricalPrices().then(function(){triggerCalc();});
 });
-if(historicalStartYearEl)historicalStartYearEl.addEventListener('change',function(){if(assetStartYearEl)assetStartYearEl.value=this.value;updateMode('historical');});
+// When Ab Jahr or Bis Jahr changes in historical mode, refetch
+startCalendarYearEl.addEventListener('change',function(){
+  if(currentMode==='historical'){if(assetStartYearEl)assetStartYearEl.value=this.value;fetchHistoricalPrices().then(function(){triggerCalc();});}
+});
+var bisCalEl=document.getElementById('bisCalendarYear');
+if(bisCalEl)bisCalEl.addEventListener('change',function(){if(currentMode==='historical')fetchHistoricalPrices().then(function(){triggerCalc();});});
 assetToggleEls.forEach(function(cb){cb.addEventListener('change',function(){triggerCalc();});});
 chartAxisToggleEl.addEventListener('change',function(){triggerCalc();});
 
@@ -91,7 +110,7 @@ function resetValuesAndCalc(){
   lumpsumEntriesContainer.innerHTML='<div class="compact-row main-entry-row"><div><label for="lumpsum">Betrag (€)</label><input id="lumpsum" type="number" value="0" min="0" class="lumpsum-amount"></div><div><label for="lumpyear">Jahr</label><input id="lumpyear" type="number" value="1" min="1" class="lumpsum-year"></div></div>';
   oneTimePayoutEntriesContainer.innerHTML='<div class="compact-row main-entry-row"><div><label>Betrag (€)</label><input id="payout" type="number" value="0" min="0" class="payout-amount"></div><div><label>Jahr</label><input id="payoutYear" type="number" value="1" min="1" class="payout-year"></div></div>';
   payoutPlanAmountEl.value=0;payoutStartYearEl.value=1;payoutIntervalEl.value='monthly';payoutIntervalDaysEl.value='';payoutIntervalEl.dispatchEvent(new Event('change'));
-  assetSelectEl.value='gold';if(historicalStartYearEl)historicalStartYearEl.value=2015;assetStartYearEl.value=2015;loadedHistoricalRates=[];
+  assetSelectEl.value='gold';startCalendarYearEl.value=2015;assetStartYearEl.value=2015;loadedHistoricalRates=[];loadedHistoricalPrices=[];
   updateMode('compare');chartAxisToggleEl.checked=false;warnEl.textContent='';headlineEl.innerHTML='';
   if(chartMain){chartMain.destroy();chartMain=null;}if(chartCompare){chartCompare.destroy();chartCompare=null;}
   document.querySelectorAll('.btn-group .btn').forEach(function(b){b.classList.remove('active-calc-btn');});
@@ -161,9 +180,41 @@ function calc(withTax){
 
   // Main chart
   if(chartMain)chartMain.destroy();
+
+  // HISTORICAL MODE: show actual price bars per year
+  if(currentMode==='historical'&&loadedHistoricalPrices.length>0){
+    var hLabels=[],hPrices=[],hContrib=[],hGrowth=[];
+    var cumC=startCapital,prevPrice=loadedHistoricalPrices[0].price;
+    for(var hi=0;hi<loadedHistoricalPrices.length;hi++){
+      var hp=loadedHistoricalPrices[hi];
+      hLabels.push(hp.year.toString());
+      hPrices.push(hp.price);
+      // Simulate portfolio: contributions + growth
+      var mr=parseFloat(rateEl.value)||0;
+      cumC+=mr*12;
+      var growthFactor=hi>0?(hp.price/loadedHistoricalPrices[hi-1].price):1;
+      var portfolioValue=hi===0?cumC:(hContrib[hi-1]+hGrowth[hi-1])*growthFactor+mr*12;
+      var contrib=cumC;
+      var growth=Math.max(0,portfolioValue-cumC);
+      hContrib.push(contrib);
+      hGrowth.push(growth);
+    }
+    chartMain=new Chart(document.getElementById('chart').getContext('2d'),{type:'bar',
+      data:{labels:hLabels,datasets:[
+        {label:'Einzahlungen',data:hContrib,backgroundColor:'rgba(52,152,219,0.7)',stack:'s'},
+        {label:'Wertsteigerung',data:hGrowth,backgroundColor:'rgba(46,204,113,0.7)',stack:'s'}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+        plugins:{tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+fmt(c.parsed.y,currency);}}}},
+        scales:{y:{stacked:true,beginAtZero:true},x:{stacked:true}}
+      }
+    });
+  } else {
+  // CALCULATOR MODE: standard stacked chart
   var ds=[{label:'Netto Einzahlungen',data:ndD,backgroundColor:CAPITAL_COLOR,stack:'pos'},{label:'Gewinn '+(withTax?'(Netto)':'(Brutto)'),data:ngD,backgroundColor:GAIN_COLOR,stack:'pos'},{label:'Auszahlungen',data:apD,backgroundColor:ANNUAL_PAYOUT_COLOR,stack:'neg'}];
   if(withTax)ds.push({label:'Steuer (kum.)',data:ctD,backgroundColor:TAX_COLOR_DIAGRAM,type:'line',order:-1,yAxisID:'y1'});
   chartMain=new Chart(document.getElementById('chart').getContext('2d'),{type:'bar',data:{labels:labels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{tooltip:{callbacks:{label:function(c){return(c.dataset.label||'')+': '+fmt(Math.abs(c.parsed.y),currency);}}}},scales:{y:{stacked:true,beginAtZero:true},y1:{display:!!withTax,position:'right',grid:{drawOnChartArea:false}},x:{stacked:true}}}});
+  }
 
   // Compare
   var eT=fBal+cumPay,bR=parseFloat(rateEl.value)||0;
