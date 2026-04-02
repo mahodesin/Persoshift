@@ -43,17 +43,35 @@
   }
 
   function renderExamples(container){
-    var ex=[{v:'IE00B4L5Y983',l:'MSCI World'},{v:'IE00B5BMR087',l:'S&P 500'},{v:'IE00BKM4GZ66',l:'EM IMI'},{v:'IE00B3RBWM25',l:'FTSE All-World'}];
+    var ex=[{v:'IE00B4L5Y983',l:'MSCI World',t:'IWDA'},{v:'IE00B5BMR087',l:'S&P 500',t:'CSPX'},{v:'IE00BKM4GZ66',l:'EM IMI',t:'EIMI'},{v:'IE00B3RBWM25',l:'FTSE All-World',t:'VWRL'}];
     var html='<div class="wkn-result-card" style="text-align:center"><h3 style="font-size:1rem">Beliebte ETFs</h3><div class="wkn-recent-list" style="justify-content:center;margin-top:0.5rem">';
-    ex.forEach(function(e){html+='<span class="wkn-recent-tag" style="cursor:pointer">'+e.l+' ('+e.v+')</span>';});
-    html+='</div></div>';container.innerHTML=html;
-    container.querySelectorAll('.wkn-recent-tag').forEach(function(tag,i){tag.addEventListener('click',function(){document.getElementById('wknSearchInput').value=ex[i].v;window.searchWKN();});});
+    ex.forEach(function(e){html+='<span class="wkn-recent-tag wkn-example-tag" data-ticker="'+e.t+'" data-name="'+e.l+'" style="cursor:pointer">'+e.l+'</span>';});
+    html+='</div><p style="font-size:0.72rem;color:var(--muted);margin-top:0.5rem">Oder gib einen Ticker direkt ein (z.B. AAPL, MSFT, URTH)</p></div>';
+    container.innerHTML=html;
+    container.querySelectorAll('.wkn-example-tag').forEach(function(tag){
+      tag.addEventListener('click',function(){
+        adoptAsset(this.getAttribute('data-ticker'),this.getAttribute('data-name'));
+      });
+    });
   }
 
   function fallback(q,st,res,btn){
     fetch('https://api.openfigi.com/v3/mapping',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify([{idType:'TICKER',idValue:q.toUpperCase(),exchCode:'GY'}])})
-    .then(function(r){return r.json();}).then(function(d){if(btn)btn.disabled=false;if(!d||!d[0]||!d[0].data||d[0].data.length===0){if(st){st.textContent='Keine Ergebnisse für "'+q+'".';st.className='error';}renderExamples(res);return;}if(st){st.textContent=d[0].data.length+' Ergebnis(se)';st.className='';}renderResults(d[0].data,res);})
-    .catch(function(){if(btn)btn.disabled=false;if(st){st.textContent='Fehler. Bitte ISIN oder WKN eingeben.';st.className='error';}renderExamples(res);});
+    .then(function(r){return r.json();}).then(function(d){if(btn)btn.disabled=false;if(!d||!d[0]||!d[0].data||d[0].data.length===0){showDirectTickerOption(q,st,res);return;}if(st){st.textContent=d[0].data.length+' Ergebnis(se)';st.className='';}renderResults(d[0].data,res);})
+    .catch(function(){if(btn)btn.disabled=false;showDirectTickerOption(q,st,res);});
+  }
+
+  function showDirectTickerOption(q,st,res){
+    if(st){st.textContent='Keine API-Ergebnisse für "'+q+'".';st.className='error';}
+    // Offer direct ticker use + examples
+    var html='<div class="wkn-result-card"><h3 style="font-size:0.95rem">'+esc(q.toUpperCase())+' direkt als Ticker verwenden?</h3>';
+    html+='<p style="font-size:0.82rem;color:var(--muted)">Falls "'+esc(q)+'" ein gültiger Börsenticker ist, kannst du ihn direkt übernehmen:</p>';
+    html+='<button class="btn" style="width:auto;padding:0.45rem 1.2rem;font-size:0.82rem;margin-top:0.5rem" id="directTickerBtn">✓ '+esc(q.toUpperCase())+' übernehmen</button></div>';
+    res.innerHTML=html;
+    var db=document.getElementById('directTickerBtn');
+    if(db)db.addEventListener('click',function(){adoptAsset(q.toUpperCase(),q.toUpperCase());});
+    // Also show examples below
+    var exDiv=document.createElement('div');res.appendChild(exDiv);renderExamples(exDiv);
   }
 
   window.searchWKN=function(){
@@ -65,7 +83,7 @@
     var body=[];if(isISIN)body.push({idType:'ID_ISIN',idValue:Q});else if(isWKN)body.push({idType:'ID_WERTPAPIER',idValue:Q});else body.push({idType:'ID_ISIN',idValue:Q});
     fetch('https://api.openfigi.com/v3/mapping',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
     .then(function(r){return r.json();}).then(function(d){if(btn)btn.disabled=false;if(!d||!d[0]||!d[0].data||d[0].data.length===0){fallback(q,st,res,btn);return;}if(st){st.textContent=d[0].data.length+' Ergebnis(se)';st.className='';}renderResults(d[0].data,res);})
-    .catch(function(){if(btn)btn.disabled=false;fallback(q,st,res,btn);});
+    .catch(function(){if(btn)btn.disabled=false;showDirectTickerOption(q,st,res,btn);});
   };
 
   var si=document.getElementById('wknSearchInput');
