@@ -31,22 +31,19 @@
     if(!exists){var opt=document.createElement('option');opt.value='custom_'+ticker;opt.textContent=name+' ('+ticker+')';opt.setAttribute('data-ticker',ticker);sel.appendChild(opt);sel.value='custom_'+ticker;}
     // Update badge
     var badge=document.getElementById('historicalBadge');
-    if(badge)badge.innerHTML='Aktuell: <strong>'+esc(name)+' ('+esc(ticker)+')</strong>';
+    if(badge)badge.innerHTML='Aktuell: <strong>'+esc(name)+' ('+esc(ticker)+')</strong> – Lade Daten...';
     // Clear search status
     var st=document.getElementById('wknSearchStatus');
     if(st){st.textContent='✓ '+name+' übernommen. Lade historische Daten...';st.className='';}
-    // Trigger historical fetch
+    // Trigger historical fetch (updateMode handles loading/error states)
     if(typeof window.updateMode==='function')window.updateMode('historical');
-    // Scroll to chart area
-    var chart=document.querySelector('.chart-card');
-    if(chart)chart.scrollIntoView({behavior:'smooth',block:'start'});
   }
 
   function renderExamples(container){
-    var ex=[{v:'IE00B4L5Y983',l:'MSCI World',t:'IWDA'},{v:'IE00B5BMR087',l:'S&P 500',t:'CSPX'},{v:'IE00BKM4GZ66',l:'EM IMI',t:'EIMI'},{v:'IE00B3RBWM25',l:'FTSE All-World',t:'VWRL'}];
-    var html='<div class="wkn-result-card" style="text-align:center"><h3 style="font-size:1rem">Beliebte ETFs</h3><div class="wkn-recent-list" style="justify-content:center;margin-top:0.5rem">';
-    ex.forEach(function(e){html+='<span class="wkn-recent-tag wkn-example-tag" data-ticker="'+e.t+'" data-name="'+e.l+'" style="cursor:pointer">'+e.l+'</span>';});
-    html+='</div><p style="font-size:0.72rem;color:var(--muted);margin-top:0.5rem">Oder gib einen Ticker direkt ein (z.B. AAPL, MSFT, URTH)</p></div>';
+    var ex=[{t:'URTH',l:'MSCI World'},{t:'SPY',l:'S&P 500'},{t:'EEM',l:'Emerging Markets'},{t:'VT',l:'FTSE All-World'},{t:'GLD',l:'Gold'}];
+    var html='<div class="wkn-result-card" style="text-align:center"><h3 style="font-size:1rem">Beliebte Assets</h3><div class="wkn-recent-list" style="justify-content:center;margin-top:0.5rem">';
+    ex.forEach(function(e){html+='<span class="wkn-recent-tag wkn-example-tag" data-ticker="'+e.t+'" data-name="'+e.l+'" style="cursor:pointer">'+e.l+' ('+e.t+')</span>';});
+    html+='</div><p style="font-size:0.72rem;color:var(--muted);margin-top:0.5rem">Gib US-Ticker ein (z.B. SPY, AAPL, MSFT, URTH) – europäische Ticker (IWDA, CSPX) werden leider nicht unterstützt.</p></div>';
     container.innerHTML=html;
     container.querySelectorAll('.wkn-example-tag').forEach(function(tag){
       tag.addEventListener('click',function(){
