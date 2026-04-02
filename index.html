@@ -54,7 +54,6 @@ function toggleTheme() {
       <div class="historical-badge" id="historicalBadge">Aktuell: <strong>Gold</strong></div>
       <div class="param-grid" style="margin-bottom:0.75rem">
         <div><label for="assetSelect">Vordefiniert</label><select id="assetSelect"><option value="gold">Gold (GLD)</option><option value="msci">MSCI World (URTH)</option><option value="bitcoin">Bitcoin</option></select></div>
-        <div><label for="historicalStartYear">Ab Jahr</label><input type="number" id="historicalStartYear" value="2015" min="2000" max="2025"></div>
       </div>
       <div style="border-top:1px solid var(--border);padding-top:0.75rem;margin-top:0.5rem">
         <label style="margin-bottom:0.3rem">Oder per WKN / ISIN / Ticker suchen:</label>
@@ -74,7 +73,8 @@ function toggleTheme() {
     <h3 class="param-title">⚙ Parameter</h3>
     <div class="param-grid">
       <div><label for="currency">Währung</label><select id="currency"><option value="EUR" selected>Euro (EUR)</option><option value="USD">USD</option><option value="JPY">JPY</option><option value="GBP">GBP</option><option value="AUD">AUD</option></select></div>
-      <div><label for="startCalendarYear">Start-Jahr</label><input type="number" id="startCalendarYear" value="" placeholder="2026"></div>
+      <div><label for="startCalendarYear" id="startYearLabel">Start-Jahr</label><input type="number" id="startCalendarYear" value="2015" placeholder="2026"></div>
+      <div id="bisJahrWrapper" style="display:none"><label for="bisCalendarYear">Bis Jahr</label><input type="number" id="bisCalendarYear" value="" placeholder="2026"></div>
       <div><label for="interestRatePreset">Rendite p.a. (%)</label>
         <select id="interestRatePreset"><option value="10">Optimistisch 10%</option><option value="7.6" selected>Realistisch 7,6%</option><option value="5">Pessimistisch 5%</option><option value="custom">Eigene</option></select>
         <input type="number" id="interestCustom" step="0.1" min="0" style="display:none;margin-top:0.25rem" placeholder="z.B. 6.5">
@@ -162,7 +162,7 @@ function toggleTheme() {
 
   <div id="headline" class="headline-container" style="display:none"></div>
 
-  <!-- Hidden: assetStartYear for calc.js compat (synced from historicalStartYear) -->
+  <!-- Hidden: assetStartYear synced from startCalendarYear in historical mode -->
   <input type="hidden" id="assetStartYear" value="2015">
 
 </div>
