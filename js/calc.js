@@ -20,7 +20,11 @@ function fetchHistoricalPrices(){
         .then(function(r){return r.json();}).then(function(d){
           var ym={};(d.prices||[]).forEach(function(p){var y=new Date(p[0]).getFullYear();if(!ym[y])ym[y]=[];ym[y].push(p[1]);});
           Object.keys(ym).sort().forEach(function(y){if(y>=startYear&&y<=endYear){var avg=ym[y].reduce(function(a,b){return a+b;},0)/ym[y].length;prices.push(avg);loadedHistoricalPrices.push({year:parseInt(y),price:avg});}});
-          loadedHistoricalRates=computeRatesFromPrices(prices);resolve();
+          loadedHistoricalRates=computeRatesFromPrices(prices);
+          console.log('CoinGecko: loaded '+loadedHistoricalPrices.length+' years for Bitcoin');
+          var badge=document.getElementById('historicalBadge');
+          if(badge&&loadedHistoricalPrices.length>0)badge.innerHTML='Aktuell: <strong>Bitcoin</strong> ('+loadedHistoricalPrices.length+' Jahre geladen)';
+          resolve();
         }).catch(function(){loadedHistoricalRates=[];loadedHistoricalPrices=[];resolve();});
       } else {
         var sym;
@@ -29,11 +33,23 @@ function fetchHistoricalPrices(){
         else sym=asset;
         fetch('https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY_ADJUSTED&symbol='+sym+'&apikey=demo')
         .then(function(r){return r.json();}).then(function(json){
+          console.log('AlphaVantage response for '+sym+':', Object.keys(json));
           var s=json['Monthly Adjusted Time Series']||{},ym={};
+          if(json['Note']||json['Information']){console.warn('AlphaVantage limit:',json['Note']||json['Information']);}
           Object.keys(s).forEach(function(d){var y=parseInt(d.slice(0,4));if(y>=startYear&&y<=endYear){if(!ym[y])ym[y]=[];ym[y].push(parseFloat(s[d]['5. adjusted close']));}});
           Object.keys(ym).sort().forEach(function(y){var avg=ym[y].reduce(function(a,b){return a+b;},0)/ym[y].length;prices.push(avg);loadedHistoricalPrices.push({year:parseInt(y),price:avg});});
-          loadedHistoricalRates=computeRatesFromPrices(prices);resolve();
-        }).catch(function(){loadedHistoricalRates=[];loadedHistoricalPrices=[];resolve();});
+          loadedHistoricalRates=computeRatesFromPrices(prices);
+          console.log('Loaded '+loadedHistoricalPrices.length+' years of data for '+sym);
+          // Update badge with result
+          var badge=document.getElementById('historicalBadge');
+          if(badge){
+            var selOpt=assetSelectEl.options[assetSelectEl.selectedIndex];
+            var name=selOpt?selOpt.text:sym;
+            if(loadedHistoricalPrices.length>0)badge.innerHTML='Aktuell: <strong>'+name+'</strong> ('+loadedHistoricalPrices.length+' Jahre geladen)';
+            else badge.innerHTML='Aktuell: <strong>'+name+'</strong> – <span style="color:var(--danger)">Keine Daten (API-Limit?)</span>';
+          }
+          resolve();
+        }).catch(function(err){console.error('AlphaVantage error:',err);loadedHistoricalRates=[];loadedHistoricalPrices=[];resolve();});
       }
     }catch(e){loadedHistoricalRates=[];loadedHistoricalPrices=[];resolve();}
   });
@@ -84,7 +100,22 @@ function updateMode(newMode){
   // Update badge
   var badge=document.getElementById('historicalBadge');
   if(badge&&newMode==='historical'){var s=assetSelectEl.options[assetSelectEl.selectedIndex];badge.innerHTML='Aktuell: <strong>'+(s?s.text:'')+'</strong>';}
-  if(newMode==='historical'){fetchHistoricalPrices().then(function(){triggerCalc();});}else{loadedHistoricalRates=[];loadedHistoricalPrices=[];triggerCalc();}
+  if(newMode==='historical'){
+    // Show loading state
+    var kE=document.getElementById('kpiEndkapital'),kES=document.getElementById('kpiEndkapitalSub');
+    if(kE){kE.textContent='Laden...';kES.textContent='';}
+    fetchHistoricalPrices().then(function(){
+      if(loadedHistoricalPrices.length<=1){
+        if(kE){kE.textContent='–';kES.textContent='Keine Daten gefunden';}
+        // Show message on chart
+        if(chartMain)chartMain.destroy();
+        var ctx=document.getElementById('chart').getContext('2d');
+        chartMain=new Chart(ctx,{type:'bar',data:{labels:['Keine Daten'],datasets:[{data:[0],backgroundColor:'rgba(100,100,100,0.3)'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:'Keine historischen Daten verfügbar. Versuche einen anderen Ticker oder Zeitraum.',color:'var(--muted)',font:{size:13}}}}});
+      } else {
+        triggerCalc();
+      }
+    });
+  }else{loadedHistoricalRates=[];loadedHistoricalPrices=[];triggerCalc();}
 }
 window.updateMode=updateMode;
 
@@ -95,7 +126,14 @@ btnHistoricalMode.addEventListener('click',function(){updateMode('historical');}
 assetSelectEl.addEventListener('change',function(){
   var badge=document.getElementById('historicalBadge');
   if(badge)badge.innerHTML='Aktuell: <strong>'+this.options[this.selectedIndex].text+'</strong>';
-  if(currentMode==='historical')fetchHistoricalPrices().then(function(){triggerCalc();});
+  if(currentMode==='historical'){
+    var kE=document.getElementById('kpiEndkapital'),kES=document.getElementById('kpiEndkapitalSub');
+    if(kE){kE.textContent='Laden...';kES.textContent='';}
+    fetchHistoricalPrices().then(function(){
+      if(loadedHistoricalPrices.length>1)triggerCalc();
+      else if(kE){kE.textContent='–';kES.textContent='Keine Daten';}
+    });
+  }
 });
 // When Ab Jahr or Bis Jahr changes in historical mode, refetch
 startCalendarYearEl.addEventListener('change',function(){
