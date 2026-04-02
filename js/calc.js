@@ -66,11 +66,19 @@ function updateMode(newMode){
   // Swap Start-Jahr ↔ Ab Jahr label
   var lbl=document.getElementById('startYearLabel');
   var bisW=document.getElementById('bisJahrWrapper');
+  var renditeW=document.getElementById('renditeWrapper');
   if(lbl)lbl.textContent=newMode==='historical'?'Ab Jahr':'Start-Jahr';
   if(bisW)bisW.style.display=newMode==='historical'?'block':'none';
+  // Hide Rendite in historical mode (returns come from real data)
+  if(renditeW)renditeW.style.display=newMode==='historical'?'none':'block';
   // Set default Bis Jahr to current year
   var bisEl=document.getElementById('bisCalendarYear');
   if(bisEl&&!bisEl.value)bisEl.value=new Date().getFullYear();
+  // In historical mode, default Ab Jahr to 2015 if empty or looks like a start year
+  if(newMode==='historical'){
+    var sv=parseInt(startCalendarYearEl.value);
+    if(!sv||sv>new Date().getFullYear())startCalendarYearEl.value=2015;
+  }
   // Sync startCalendarYear to assetStartYear
   if(assetStartYearEl)assetStartYearEl.value=startCalendarYearEl.value||2015;
   // Update badge
@@ -181,24 +189,41 @@ function calc(withTax){
   // Main chart
   if(chartMain)chartMain.destroy();
 
-  // HISTORICAL MODE: show actual price bars per year
-  if(currentMode==='historical'&&loadedHistoricalPrices.length>0){
-    var hLabels=[],hPrices=[],hContrib=[],hGrowth=[];
-    var cumC=startCapital,prevPrice=loadedHistoricalPrices[0].price;
+  // HISTORICAL MODE: show portfolio growth using actual market returns
+  if(currentMode==='historical'&&loadedHistoricalPrices.length>1){
+    var hLabels=[],hContrib=[],hGrowth=[];
+    var monthlyRate=parseFloat(rateEl.value)||0;
+    var initCapital=parseFloat(startEl.value)||0;
+    var portfolioValue=initCapital;
+    var totalDeposited=initCapital;
+
     for(var hi=0;hi<loadedHistoricalPrices.length;hi++){
       var hp=loadedHistoricalPrices[hi];
       hLabels.push(hp.year.toString());
-      hPrices.push(hp.price);
-      // Simulate portfolio: contributions + growth
-      var mr=parseFloat(rateEl.value)||0;
-      cumC+=mr*12;
-      var growthFactor=hi>0?(hp.price/loadedHistoricalPrices[hi-1].price):1;
-      var portfolioValue=hi===0?cumC:(hContrib[hi-1]+hGrowth[hi-1])*growthFactor+mr*12;
-      var contrib=cumC;
-      var growth=Math.max(0,portfolioValue-cumC);
-      hContrib.push(contrib);
-      hGrowth.push(growth);
+
+      // Add yearly contributions
+      totalDeposited+=monthlyRate*12;
+
+      // Apply real market return for this year
+      if(hi>0){
+        var yearReturn=loadedHistoricalPrices[hi].price/loadedHistoricalPrices[hi-1].price;
+        portfolioValue=portfolioValue*yearReturn+monthlyRate*12;
+      } else {
+        portfolioValue=totalDeposited;
+      }
+
+      hContrib.push(Math.round(totalDeposited));
+      hGrowth.push(Math.max(0,Math.round(portfolioValue-totalDeposited)));
     }
+
+    // Update KPIs for historical
+    var totalVal=portfolioValue;
+    var totalGain=totalVal-totalDeposited;
+    if(kE){kE.textContent=fmt(totalVal,currency);kES.textContent='Historisch';}
+    if(kEi){kEi.textContent=fmt(totalDeposited,currency);kEiS.textContent=fmt(monthlyRate,currency)+'/M × '+loadedHistoricalPrices.length+'J';}
+    if(kG){kG.textContent=fmt(totalGain,currency);kGS.textContent=(totalDeposited>0?((totalGain/totalDeposited)*100).toFixed(1):'0')+'%';}
+    if(kSt){kSt.textContent='–';kStS.textContent='historisch';}
+
     chartMain=new Chart(document.getElementById('chart').getContext('2d'),{type:'bar',
       data:{labels:hLabels,datasets:[
         {label:'Einzahlungen',data:hContrib,backgroundColor:'rgba(52,152,219,0.7)',stack:'s'},
@@ -209,12 +234,20 @@ function calc(withTax){
         scales:{y:{stacked:true,beginAtZero:true},x:{stacked:true}}
       }
     });
-  } else {
+    // Skip compare chart in historical mode
+    if(chartCompare)chartCompare.destroy();
+    return;
+  } else if(currentMode==='historical'&&loadedHistoricalPrices.length<=1){
+    // No data available
+    document.getElementById('chart').getContext('2d');
+    if(kE){kE.textContent='–';kES.textContent='Keine Daten';}
+    return;
+  }
+
   // CALCULATOR MODE: standard stacked chart
   var ds=[{label:'Netto Einzahlungen',data:ndD,backgroundColor:CAPITAL_COLOR,stack:'pos'},{label:'Gewinn '+(withTax?'(Netto)':'(Brutto)'),data:ngD,backgroundColor:GAIN_COLOR,stack:'pos'},{label:'Auszahlungen',data:apD,backgroundColor:ANNUAL_PAYOUT_COLOR,stack:'neg'}];
   if(withTax)ds.push({label:'Steuer (kum.)',data:ctD,backgroundColor:TAX_COLOR_DIAGRAM,type:'line',order:-1,yAxisID:'y1'});
   chartMain=new Chart(document.getElementById('chart').getContext('2d'),{type:'bar',data:{labels:labels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{tooltip:{callbacks:{label:function(c){return(c.dataset.label||'')+': '+fmt(Math.abs(c.parsed.y),currency);}}}},scales:{y:{stacked:true,beginAtZero:true},y1:{display:!!withTax,position:'right',grid:{drawOnChartArea:false}},x:{stacked:true}}}});
-  }
 
   // Compare
   var eT=fBal+cumPay,bR=parseFloat(rateEl.value)||0;
