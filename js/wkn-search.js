@@ -1,220 +1,70 @@
-// ============================================
-// PersoShift – WKN / ISIN Search
-// Standalone module, no dependencies on calc
-// ============================================
-(function() {
+// PersoShift – WKN/ISIN Search (integrated in historical section)
+(function(){
   'use strict';
+  var recent=[];try{recent=JSON.parse(localStorage.getItem('wkn_recent')||'[]');}catch(e){}
+  function updateRecentUI(){var c=document.getElementById('wknRecentSearches'),l=document.getElementById('wknRecentList');if(!c||!l)return;if(recent.length===0){c.style.display='none';return;}c.style.display='block';l.innerHTML='';recent.slice(0,8).forEach(function(t){var tag=document.createElement('span');tag.className='wkn-recent-tag';tag.textContent=t;tag.addEventListener('click',function(){document.getElementById('wknSearchInput').value=t;window.searchWKN();});l.appendChild(tag);});}
+  function addToRecent(t){recent=recent.filter(function(x){return x!==t;});recent.unshift(t);if(recent.length>8)recent=recent.slice(0,8);try{localStorage.setItem('wkn_recent',JSON.stringify(recent));}catch(e){}updateRecentUI();}
+  function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+  function di(l,v,h){return'<div class="wkn-detail-item"><div class="wkn-detail-label">'+esc(l)+'</div><div class="wkn-detail-value'+(h?' highlight':'')+'">'+esc(v)+'</div></div>';}
 
-  var recentSearches = [];
-  try { recentSearches = JSON.parse(localStorage.getItem('wkn_recent') || '[]'); } catch(e) {}
-
-  function updateRecentUI() {
-    var container = document.getElementById('wknRecentSearches');
-    var list = document.getElementById('wknRecentList');
-    if (!container || !list) return;
-    if (recentSearches.length === 0) { container.style.display = 'none'; return; }
-    container.style.display = 'block';
-    list.innerHTML = '';
-    recentSearches.slice(0, 8).forEach(function(term) {
-      var tag = document.createElement('span');
-      tag.className = 'wkn-recent-tag';
-      tag.textContent = term;
-      tag.addEventListener('click', function() {
-        document.getElementById('wknSearchInput').value = term;
-        window.searchWKN();
-      });
-      list.appendChild(tag);
-    });
-  }
-
-  function addToRecent(term) {
-    recentSearches = recentSearches.filter(function(t) { return t !== term; });
-    recentSearches.unshift(term);
-    if (recentSearches.length > 8) recentSearches = recentSearches.slice(0, 8);
-    try { localStorage.setItem('wkn_recent', JSON.stringify(recentSearches)); } catch(e) {}
-    updateRecentUI();
-  }
-
-  function escapeHtml(str) {
-    var d = document.createElement('div');
-    d.textContent = str || '';
-    return d.innerHTML;
-  }
-
-  function detailItem(label, value, highlight) {
-    return '<div class="wkn-detail-item"><div class="wkn-detail-label">' + escapeHtml(label) +
-      '</div><div class="wkn-detail-value' + (highlight ? ' highlight' : '') + '">' +
-      escapeHtml(value) + '</div></div>';
-  }
-
-  function renderResults(items, container) {
-    container.innerHTML = '';
-    var seen = {};
-    items.filter(function(item) {
-      var k = (item.name || '') + (item.exchCode || '');
-      if (seen[k]) return false;
-      seen[k] = true; return true;
-    }).slice(0, 10).forEach(function(item) {
-      var card = document.createElement('div');
-      card.className = 'wkn-result-card';
-      var sub = [];
-      if (item.ticker) sub.push('Ticker: ' + item.ticker);
-      if (item.exchCode) sub.push('Börse: ' + item.exchCode);
-      if (item.securityType) sub.push(item.securityType);
-      var html = '<h3>' + escapeHtml(item.name || 'Unbekannt') + '</h3>';
-      html += '<div class="wkn-subtitle">' + escapeHtml(sub.join(' · ')) + '</div>';
-      html += '<div class="wkn-details-grid">';
-      if (item.figi) html += detailItem('FIGI', item.figi);
-      if (item.securityType) html += detailItem('Typ', item.securityType);
-      if (item.securityType2) html += detailItem('Untertyp', item.securityType2);
-      if (item.marketSector) html += detailItem('Sektor', item.marketSector);
-      if (item.exchCode) html += detailItem('Börse', item.exchCode);
-      if (item.ticker) html += detailItem('Ticker', item.ticker, true);
-      if (item.compositeFIGI) html += detailItem('Composite FIGI', item.compositeFIGI);
-      if (item.shareClassFIGI) html += detailItem('Share Class FIGI', item.shareClassFIGI);
-      html += '</div>';
-      if (item.ticker) {
-        html += '<button class="btn wkn-adopt-btn" style="margin-top:0.75rem;width:auto;padding:0.45rem 1.2rem;font-size:0.82rem;">✓ Übernehmen für historische Analyse</button>';
-      }
-      card.innerHTML = html;
-      // Attach adopt button handler
-      var adoptBtn = card.querySelector('.wkn-adopt-btn');
-      if (adoptBtn) {
-        adoptBtn.addEventListener('click', function() {
-          adoptAsset(item.ticker, item.name || item.ticker);
-        });
-      }
+  function renderResults(items,container){
+    container.innerHTML='';var seen={};
+    items.filter(function(i){var k=(i.name||'')+(i.exchCode||'');if(seen[k])return false;seen[k]=true;return true;}).slice(0,10).forEach(function(item){
+      var card=document.createElement('div');card.className='wkn-result-card';
+      var sub=[];if(item.ticker)sub.push('Ticker: '+item.ticker);if(item.exchCode)sub.push('Börse: '+item.exchCode);if(item.securityType)sub.push(item.securityType);
+      var html='<h3>'+esc(item.name||'Unbekannt')+'</h3><div class="wkn-subtitle">'+esc(sub.join(' · '))+'</div><div class="wkn-details-grid">';
+      if(item.figi)html+=di('FIGI',item.figi);if(item.securityType)html+=di('Typ',item.securityType);
+      if(item.marketSector)html+=di('Sektor',item.marketSector);if(item.exchCode)html+=di('Börse',item.exchCode);
+      if(item.ticker)html+=di('Ticker',item.ticker,true);html+='</div>';
+      if(item.ticker){html+='<button class="btn wkn-adopt-btn" style="margin-top:0.75rem;width:auto;padding:0.45rem 1.2rem;font-size:0.82rem;">✓ Übernehmen</button>';}
+      card.innerHTML=html;
+      var ab=card.querySelector('.wkn-adopt-btn');
+      if(ab){ab.addEventListener('click',function(){adoptAsset(item.ticker,item.name||item.ticker);});}
       container.appendChild(card);
     });
   }
 
-  // Adopt a WKN result into historical analysis
-  function adoptAsset(ticker, name) {
-    var sel = document.getElementById('assetSelect');
-    if (!sel) return;
-    // Check if option already exists
-    var exists = false;
-    for (var i = 0; i < sel.options.length; i++) {
-      if (sel.options[i].value === 'custom_' + ticker) { exists = true; sel.selectedIndex = i; break; }
-    }
-    if (!exists) {
-      var opt = document.createElement('option');
-      opt.value = 'custom_' + ticker;
-      opt.textContent = name;
-      opt.setAttribute('data-ticker', ticker);
-      sel.appendChild(opt);
-      sel.value = 'custom_' + ticker;
-    }
-    // Switch to ETF tab and historical mode
-    var rechnerTab = document.getElementById('tab-rechner');
-    var wknTab = document.getElementById('tab-wkn');
-    if (rechnerTab) rechnerTab.classList.add('active-content');
-    if (wknTab) wknTab.classList.remove('active-content');
-    // Update header nav buttons
-    document.querySelectorAll('.header-nav-btn').forEach(function(b, i) {
-      b.classList.toggle('active-header-btn', i === 0);
-    });
-    // Switch to historical mode
-    if (typeof window.updateMode === 'function') window.updateMode('historical');
+  function adoptAsset(ticker,name){
+    var sel=document.getElementById('assetSelect');if(!sel)return;
+    var exists=false;
+    for(var i=0;i<sel.options.length;i++){if(sel.options[i].value==='custom_'+ticker){exists=true;sel.selectedIndex=i;break;}}
+    if(!exists){var opt=document.createElement('option');opt.value='custom_'+ticker;opt.textContent=name+' ('+ticker+')';opt.setAttribute('data-ticker',ticker);sel.appendChild(opt);sel.value='custom_'+ticker;}
+    // Update badge
+    var badge=document.getElementById('historicalBadge');
+    if(badge)badge.innerHTML='Aktuell: <strong>'+name+' ('+ticker+')</strong>';
+    // Trigger historical fetch
+    if(typeof window.updateMode==='function')window.updateMode('historical');
+    // Scroll to top
+    window.scrollTo({top:0,behavior:'smooth'});
   }
 
-  function renderExamples(container) {
-    var examples = [
-      { value: 'IE00B4L5Y983', label: 'MSCI World' },
-      { value: 'IE00B5BMR087', label: 'S&P 500' },
-      { value: 'IE00BKM4GZ66', label: 'EM IMI' },
-      { value: 'IE00B3RBWM25', label: 'FTSE All-World' }
-    ];
-    var html = '<div class="wkn-result-card" style="text-align:center">';
-    html += '<h3 style="font-size:1.1rem">Beliebte Wertpapiere zum Ausprobieren</h3>';
-    html += '<div class="wkn-recent-list" style="justify-content:center;margin-top:0.75rem">';
-    examples.forEach(function(ex) {
-      html += '<span class="wkn-recent-tag" style="cursor:pointer">' + ex.label + ' (' + ex.value + ')</span>';
-    });
-    html += '</div></div>';
-    container.innerHTML = html;
-    container.querySelectorAll('.wkn-recent-tag').forEach(function(tag, i) {
-      tag.addEventListener('click', function() {
-        document.getElementById('wknSearchInput').value = examples[i].value;
-        window.searchWKN();
-      });
-    });
+  function renderExamples(container){
+    var ex=[{v:'IE00B4L5Y983',l:'MSCI World'},{v:'IE00B5BMR087',l:'S&P 500'},{v:'IE00BKM4GZ66',l:'EM IMI'},{v:'IE00B3RBWM25',l:'FTSE All-World'}];
+    var html='<div class="wkn-result-card" style="text-align:center"><h3 style="font-size:1rem">Beliebte ETFs</h3><div class="wkn-recent-list" style="justify-content:center;margin-top:0.5rem">';
+    ex.forEach(function(e){html+='<span class="wkn-recent-tag" style="cursor:pointer">'+e.l+' ('+e.v+')</span>';});
+    html+='</div></div>';container.innerHTML=html;
+    container.querySelectorAll('.wkn-recent-tag').forEach(function(tag,i){tag.addEventListener('click',function(){document.getElementById('wknSearchInput').value=ex[i].v;window.searchWKN();});});
   }
 
-  function fallbackSearch(query, statusEl, resultsEl, btn) {
-    fetch('https://api.openfigi.com/v3/mapping', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify([{ idType: 'TICKER', idValue: query.toUpperCase(), exchCode: 'GY' }])
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (btn) btn.disabled = false;
-      if (!data || !data[0] || !data[0].data || data[0].data.length === 0) {
-        if (statusEl) { statusEl.textContent = 'Keine Ergebnisse für "' + query + '". Versuche eine ISIN oder WKN.'; statusEl.className = 'error'; }
-        renderExamples(resultsEl);
-        return;
-      }
-      if (statusEl) { statusEl.textContent = data[0].data.length + ' Ergebnis(se) gefunden'; statusEl.className = ''; }
-      renderResults(data[0].data, resultsEl);
-    })
-    .catch(function() {
-      if (btn) btn.disabled = false;
-      if (statusEl) { statusEl.textContent = 'Fehler. Bitte ISIN oder WKN direkt eingeben.'; statusEl.className = 'error'; }
-      renderExamples(resultsEl);
-    });
+  function fallback(q,st,res,btn){
+    fetch('https://api.openfigi.com/v3/mapping',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify([{idType:'TICKER',idValue:q.toUpperCase(),exchCode:'GY'}])})
+    .then(function(r){return r.json();}).then(function(d){if(btn)btn.disabled=false;if(!d||!d[0]||!d[0].data||d[0].data.length===0){if(st){st.textContent='Keine Ergebnisse für "'+q+'".';st.className='error';}renderExamples(res);return;}if(st){st.textContent=d[0].data.length+' Ergebnis(se)';st.className='';}renderResults(d[0].data,res);})
+    .catch(function(){if(btn)btn.disabled=false;if(st){st.textContent='Fehler. Bitte ISIN oder WKN eingeben.';st.className='error';}renderExamples(res);});
   }
 
-  // Main search function
-  window.searchWKN = function() {
-    var input = document.getElementById('wknSearchInput');
-    var statusEl = document.getElementById('wknSearchStatus');
-    var resultsEl = document.getElementById('wknSearchResults');
-    var btn = document.getElementById('wknSearchBtn');
-    var query = (input ? input.value : '').trim();
-
-    if (!query) {
-      if (statusEl) { statusEl.textContent = 'Bitte einen Suchbegriff eingeben.'; statusEl.className = 'error'; }
-      return;
-    }
-
-    if (statusEl) { statusEl.textContent = 'Suche läuft...'; statusEl.className = ''; }
-    if (resultsEl) resultsEl.innerHTML = '';
-    if (btn) btn.disabled = true;
-    addToRecent(query);
-
-    var q = query.toUpperCase();
-    var isISIN = /^[A-Z]{2}[A-Z0-9]{10}$/.test(q);
-    var isWKN = /^[A-Z0-9]{6}$/.test(q) && !isISIN;
-    var body = [];
-    if (isISIN) body.push({ idType: 'ID_ISIN', idValue: q });
-    else if (isWKN) body.push({ idType: 'ID_WERTPAPIER', idValue: q });
-    else body.push({ idType: 'ID_ISIN', idValue: q });
-
-    fetch('https://api.openfigi.com/v3/mapping', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (btn) btn.disabled = false;
-      if (!data || !data[0] || !data[0].data || data[0].data.length === 0) {
-        fallbackSearch(query, statusEl, resultsEl, btn);
-        return;
-      }
-      if (statusEl) { statusEl.textContent = data[0].data.length + ' Ergebnis(se) gefunden'; statusEl.className = ''; }
-      renderResults(data[0].data, resultsEl);
-    })
-    .catch(function() {
-      if (btn) btn.disabled = false;
-      fallbackSearch(query, statusEl, resultsEl, btn);
-    });
+  window.searchWKN=function(){
+    var inp=document.getElementById('wknSearchInput'),st=document.getElementById('wknSearchStatus'),res=document.getElementById('wknSearchResults'),btn=document.getElementById('wknSearchBtn');
+    var q=(inp?inp.value:'').trim();
+    if(!q){if(st){st.textContent='Bitte Suchbegriff eingeben.';st.className='error';}return;}
+    if(st){st.textContent='Suche läuft...';st.className='';}if(res)res.innerHTML='';if(btn)btn.disabled=true;addToRecent(q);
+    var Q=q.toUpperCase(),isISIN=/^[A-Z]{2}[A-Z0-9]{10}$/.test(Q),isWKN=/^[A-Z0-9]{6}$/.test(Q)&&!isISIN;
+    var body=[];if(isISIN)body.push({idType:'ID_ISIN',idValue:Q});else if(isWKN)body.push({idType:'ID_WERTPAPIER',idValue:Q});else body.push({idType:'ID_ISIN',idValue:Q});
+    fetch('https://api.openfigi.com/v3/mapping',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+    .then(function(r){return r.json();}).then(function(d){if(btn)btn.disabled=false;if(!d||!d[0]||!d[0].data||d[0].data.length===0){fallback(q,st,res,btn);return;}if(st){st.textContent=d[0].data.length+' Ergebnis(se)';st.className='';}renderResults(d[0].data,res);})
+    .catch(function(){if(btn)btn.disabled=false;fallback(q,st,res,btn);});
   };
 
-  // Enter key
-  var si = document.getElementById('wknSearchInput');
-  if (si) si.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); window.searchWKN(); } });
-
+  var si=document.getElementById('wknSearchInput');
+  if(si)si.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();window.searchWKN();}});
   updateRecentUI();
 })();
