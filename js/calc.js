@@ -5,6 +5,35 @@ function computeRatesFromPrices(p){var r=[];for(var i=1;i<p.length;i++)r.push(p[
 
 var loadedHistoricalPrices=[];// {year, price} array
 
+// Embedded historical yearly average prices (no API needed)
+var HISTORICAL_DATA = {
+  gold: { // GLD ETF average yearly close
+    2005:44.5,2006:58.2,2007:66.5,2008:83.5,2009:97.2,2010:122.3,2011:153.6,2012:163.1,
+    2013:130.3,2014:121.2,2015:109.3,2016:118.7,2017:121.7,2018:121.2,2019:134.9,
+    2020:168.2,2021:168.0,2022:167.4,2023:185.5,2024:213.8,2025:240.5
+  },
+  msci: { // URTH / MSCI World approximate yearly avg
+    2008:42,2009:45,2010:53,2011:52,2012:58,2013:70,2014:74,2015:74,2016:75,
+    2017:86,2018:82,2019:96,2020:99,2021:124,2022:104,2023:118,2024:137,2025:142
+  },
+  spy: { // S&P 500 ETF yearly avg
+    2000:139,2001:120,2002:101,2003:101,2004:113,2005:120,2006:127,2007:146,
+    2008:126,2009:94,2010:113,2011:126,2012:136,2013:159,2014:190,2015:205,
+    2016:209,2017:243,2018:274,2019:296,2020:326,2021:423,2022:404,2023:444,
+    2024:502,2025:530
+  },
+  eem: { // Emerging Markets yearly avg
+    2005:26,2006:32,2007:42,2008:31,2009:31,2010:41,2011:40,2012:40,
+    2013:40,2014:41,2015:34,2016:35,2017:42,2018:42,2019:42,2020:43,
+    2021:51,2022:39,2023:39,2024:42,2025:43
+  },
+  vt: { // FTSE All-World yearly avg
+    2008:44,2009:38,2010:46,2011:47,2012:49,2013:56,2014:59,2015:59,
+    2016:60,2017:69,2018:71,2019:75,2020:78,2021:101,2022:88,2023:95,
+    2024:108,2025:113
+  }
+};
+
 function fetchHistoricalPrices(){
   var asset=assetSelectEl.value;
   var startYear=parseInt(startCalendarYearEl.value)||2015;
@@ -12,47 +41,93 @@ function fetchHistoricalPrices(){
   var endYear=parseInt(bisEl?bisEl.value:0)||new Date().getFullYear();
   if(assetStartYearEl)assetStartYearEl.value=startYear;
   var prices=[];loadedHistoricalPrices=[];
+
   return new Promise(function(resolve){
-    try{
-      if(asset==='bitcoin'){
+    // Check for embedded data first (predefined assets)
+    var embeddedKey = asset; // gold, msci, spy, eem, vt
+    if(HISTORICAL_DATA[embeddedKey]){
+      var data=HISTORICAL_DATA[embeddedKey];
+      Object.keys(data).sort().forEach(function(y){
+        var yr=parseInt(y);
+        if(yr>=startYear&&yr<=endYear){
+          prices.push(data[y]);
+          loadedHistoricalPrices.push({year:yr,price:data[y]});
+        }
+      });
+      loadedHistoricalRates=computeRatesFromPrices(prices);
+      updateBadge(loadedHistoricalPrices.length);
+      resolve();
+      return;
+    }
+
+    // Bitcoin via CoinGecko (free, no key needed)
+    if(asset==='bitcoin'){
+      try{
         var from=Math.floor(new Date(startYear+'-01-01').getTime()/1000),to=Math.floor(new Date(endYear+'-12-31').getTime()/1000);
         fetch('https://api.coingecko.com/api/v3/coins/bitcoin/market_chart/range?vs_currency=usd&from='+from+'&to='+to)
         .then(function(r){return r.json();}).then(function(d){
           var ym={};(d.prices||[]).forEach(function(p){var y=new Date(p[0]).getFullYear();if(!ym[y])ym[y]=[];ym[y].push(p[1]);});
           Object.keys(ym).sort().forEach(function(y){if(y>=startYear&&y<=endYear){var avg=ym[y].reduce(function(a,b){return a+b;},0)/ym[y].length;prices.push(avg);loadedHistoricalPrices.push({year:parseInt(y),price:avg});}});
           loadedHistoricalRates=computeRatesFromPrices(prices);
-          console.log('CoinGecko: loaded '+loadedHistoricalPrices.length+' years for Bitcoin');
-          var badge=document.getElementById('historicalBadge');
-          if(badge&&loadedHistoricalPrices.length>0)badge.innerHTML='Aktuell: <strong>Bitcoin</strong> ('+loadedHistoricalPrices.length+' Jahre geladen)';
+          updateBadge(loadedHistoricalPrices.length);
           resolve();
-        }).catch(function(){loadedHistoricalRates=[];loadedHistoricalPrices=[];resolve();});
-      } else {
-        var sym;
-        if(asset==='gold')sym='GLD';else if(asset==='msci')sym='URTH';
-        else if(asset.indexOf('custom_')===0){var opt=assetSelectEl.options[assetSelectEl.selectedIndex];sym=opt?(opt.getAttribute('data-ticker')||asset.replace('custom_','')):asset.replace('custom_','');}
-        else sym=asset;
-        fetch('https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY_ADJUSTED&symbol='+sym+'&apikey=demo')
+        }).catch(function(){loadedHistoricalRates=[];loadedHistoricalPrices=[];updateBadge(0);resolve();});
+      }catch(e){resolve();}
+      return;
+    }
+
+    // Custom ticker – try Yahoo Finance chart API (better CORS than AlphaVantage)
+    if(asset.indexOf('custom_')===0){
+      var opt=assetSelectEl.options[assetSelectEl.selectedIndex];
+      var sym=opt?(opt.getAttribute('data-ticker')||asset.replace('custom_','')):asset.replace('custom_','');
+      try{
+        var period1=Math.floor(new Date(startYear+'-01-01').getTime()/1000);
+        var period2=Math.floor(new Date(endYear+'-12-31').getTime()/1000);
+        fetch('https://query1.finance.yahoo.com/v8/finance/chart/'+sym+'?period1='+period1+'&period2='+period2+'&interval=1mo')
         .then(function(r){return r.json();}).then(function(json){
-          console.log('AlphaVantage response for '+sym+':', Object.keys(json));
-          var s=json['Monthly Adjusted Time Series']||{},ym={};
-          if(json['Note']||json['Information']){console.warn('AlphaVantage limit:',json['Note']||json['Information']);}
-          Object.keys(s).forEach(function(d){var y=parseInt(d.slice(0,4));if(y>=startYear&&y<=endYear){if(!ym[y])ym[y]=[];ym[y].push(parseFloat(s[d]['5. adjusted close']));}});
-          Object.keys(ym).sort().forEach(function(y){var avg=ym[y].reduce(function(a,b){return a+b;},0)/ym[y].length;prices.push(avg);loadedHistoricalPrices.push({year:parseInt(y),price:avg});});
-          loadedHistoricalRates=computeRatesFromPrices(prices);
-          console.log('Loaded '+loadedHistoricalPrices.length+' years of data for '+sym);
-          // Update badge with result
-          var badge=document.getElementById('historicalBadge');
-          if(badge){
-            var selOpt=assetSelectEl.options[assetSelectEl.selectedIndex];
-            var name=selOpt?selOpt.text:sym;
-            if(loadedHistoricalPrices.length>0)badge.innerHTML='Aktuell: <strong>'+name+'</strong> ('+loadedHistoricalPrices.length+' Jahre geladen)';
-            else badge.innerHTML='Aktuell: <strong>'+name+'</strong> – <span style="color:var(--danger)">Keine Daten (API-Limit?)</span>';
+          var ts=json&&json.chart&&json.chart.result&&json.chart.result[0];
+          if(ts&&ts.timestamp&&ts.indicators&&ts.indicators.adjclose){
+            var stamps=ts.timestamp,closes=ts.indicators.adjclose[0].adjclose,ym={};
+            for(var i=0;i<stamps.length;i++){
+              if(closes[i]===null)continue;
+              var yr=new Date(stamps[i]*1000).getFullYear();
+              if(!ym[yr])ym[yr]=[];
+              ym[yr].push(closes[i]);
+            }
+            Object.keys(ym).sort().forEach(function(y){
+              var yr=parseInt(y);
+              if(yr>=startYear&&yr<=endYear){
+                var avg=ym[y].reduce(function(a,b){return a+b;},0)/ym[y].length;
+                prices.push(avg);loadedHistoricalPrices.push({year:yr,price:avg});
+              }
+            });
           }
+          loadedHistoricalRates=computeRatesFromPrices(prices);
+          updateBadge(loadedHistoricalPrices.length);
           resolve();
-        }).catch(function(err){console.error('AlphaVantage error:',err);loadedHistoricalRates=[];loadedHistoricalPrices=[];resolve();});
-      }
-    }catch(e){loadedHistoricalRates=[];loadedHistoricalPrices=[];resolve();}
+        }).catch(function(){
+          // Yahoo also failed – no data
+          loadedHistoricalRates=[];loadedHistoricalPrices=[];
+          updateBadge(0);
+          resolve();
+        });
+      }catch(e){resolve();}
+      return;
+    }
+
+    // Fallback: no data
+    updateBadge(0);
+    resolve();
   });
+}
+
+function updateBadge(count){
+  var badge=document.getElementById('historicalBadge');
+  if(!badge)return;
+  var selOpt=assetSelectEl.options[assetSelectEl.selectedIndex];
+  var name=selOpt?selOpt.text:'';
+  if(count>0)badge.innerHTML='Aktuell: <strong>'+name+'</strong> ('+count+' Jahre)';
+  else badge.innerHTML='Aktuell: <strong>'+name+'</strong> – <span style="color:var(--danger)">Keine Daten verfügbar</span>';
 }
 
 function computeComparisonTotal(start,lumps,br,ri,ar,yrs,se,sy){
