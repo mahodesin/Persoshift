@@ -40,14 +40,16 @@
   }
 
   function renderExamples(container){
-    var ex=[{t:'URTH',l:'MSCI World'},{t:'SPY',l:'S&P 500'},{t:'EEM',l:'Emerging Markets'},{t:'VT',l:'FTSE All-World'},{t:'GLD',l:'Gold'}];
+    var ex=[{v:'msci',l:'MSCI World'},{v:'spy',l:'S&P 500'},{v:'eem',l:'Emerging Markets'},{v:'vt',l:'FTSE All-World'},{v:'gold',l:'Gold'},{v:'bitcoin',l:'Bitcoin'}];
     var html='<div class="wkn-result-card" style="text-align:center"><h3 style="font-size:1rem">Beliebte Assets</h3><div class="wkn-recent-list" style="justify-content:center;margin-top:0.5rem">';
-    ex.forEach(function(e){html+='<span class="wkn-recent-tag wkn-example-tag" data-ticker="'+e.t+'" data-name="'+e.l+'" style="cursor:pointer">'+e.l+' ('+e.t+')</span>';});
-    html+='</div><p style="font-size:0.72rem;color:var(--muted);margin-top:0.5rem">Gib US-Ticker ein (z.B. SPY, AAPL, MSFT, URTH) – europäische Ticker (IWDA, CSPX) werden leider nicht unterstützt.</p></div>';
+    ex.forEach(function(e){html+='<span class="wkn-recent-tag wkn-example-tag" data-value="'+e.v+'" style="cursor:pointer">'+e.l+'</span>';});
+    html+='</div></div>';
     container.innerHTML=html;
     container.querySelectorAll('.wkn-example-tag').forEach(function(tag){
       tag.addEventListener('click',function(){
-        adoptAsset(this.getAttribute('data-ticker'),this.getAttribute('data-name'));
+        var val=this.getAttribute('data-value');
+        var sel=document.getElementById('assetSelect');
+        if(sel){sel.value=val;sel.dispatchEvent(new Event('change'));}
       });
     });
   }
