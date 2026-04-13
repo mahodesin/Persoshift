@@ -174,6 +174,8 @@ function updateMode(newMode){
   if(renditeW)renditeW.style.display=newMode==='historical'?'none':'block';
   if(chartCtrl)chartCtrl.style.display=newMode==='historical'?'none':'flex';
   if(laufzeitRow)laufzeitRow.style.display=newMode==='historical'?'none':'';
+  var compareSection=document.getElementById('compareSection');
+  if(compareSection)compareSection.style.display=newMode==='historical'?'none':'block';
   // Set default Bis date to today
   var bisEl=document.getElementById('bisDate');
   if(bisEl&&!bisEl.value){var d=new Date();bisEl.value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
