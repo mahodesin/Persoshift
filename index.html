@@ -73,8 +73,9 @@ function toggleTheme() {
     <h3 class="param-title">⚙ Parameter</h3>
     <div class="param-grid">
       <div><label for="currency">Währung</label><select id="currency"><option value="EUR" selected>Euro (EUR)</option><option value="USD">USD</option><option value="JPY">JPY</option><option value="GBP">GBP</option><option value="AUD">AUD</option></select></div>
-      <div><label for="startCalendarYear" id="startYearLabel">Start-Jahr</label><input type="number" id="startCalendarYear" value="2015" placeholder="2026"></div>
-      <div id="bisJahrWrapper" style="display:none"><label for="bisCalendarYear">Bis Jahr</label><input type="number" id="bisCalendarYear" value="" placeholder="2026"></div>
+      <div id="startYearWrapper"><label for="startCalendarYear" id="startYearLabel">Start-Jahr</label><input type="number" id="startCalendarYear" value="2015" placeholder="2026"></div>
+      <div id="startDateWrapper" style="display:none"><label for="startDate">Ab Datum</label><input type="date" id="startDate" value="2015-01-01"></div>
+      <div id="bisJahrWrapper" style="display:none"><label for="bisDate">Bis Datum</label><input type="date" id="bisDate" value=""></div>
       <div id="renditeWrapper"><label for="interestRatePreset">Rendite p.a. (%)</label>
         <select id="interestRatePreset"><option value="10">Optimistisch 10%</option><option value="7.6" selected>Realistisch 7,6%</option><option value="5">Pessimistisch 5%</option><option value="custom">Eigene</option></select>
         <input type="number" id="interestCustom" step="0.1" min="0" style="display:none;margin-top:0.25rem" placeholder="z.B. 6.5">
@@ -140,7 +141,7 @@ function toggleTheme() {
 
   <!-- Main Chart -->
   <div class="card chart-card">
-    <div class="chart-card-header"><h3 class="chart-title">📈 Vermögensentwicklung</h3><div class="chart-controls"><label for="chartAxisToggle">Kalenderjahre</label><input type="checkbox" id="chartAxisToggle"></div></div>
+    <div class="chart-card-header"><h3 class="chart-title">📈 Vermögensentwicklung</h3><div class="chart-controls" id="chartControlsWrapper"><label for="chartAxisToggle">Kalenderjahre</label><input type="checkbox" id="chartAxisToggle"></div></div>
     <div class="chart-container"><canvas id="chart"></canvas></div>
   </div>
 
