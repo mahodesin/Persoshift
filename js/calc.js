@@ -160,8 +160,10 @@ function updateMode(newMode){
   var renditeW=document.getElementById('renditeWrapper');
   if(lbl)lbl.textContent=newMode==='historical'?'Ab Jahr':'Start-Jahr';
   if(bisW)bisW.style.display=newMode==='historical'?'block':'none';
-  // Hide Rendite in historical mode (returns come from real data)
+  // Hide Rendite and Laufzeit slider in historical mode
   if(renditeW)renditeW.style.display=newMode==='historical'?'none':'block';
+  var laufzeitRow=document.getElementById('laufzeitSliderRow');
+  if(laufzeitRow)laufzeitRow.style.display=newMode==='historical'?'none':'';
   // Set default Bis Jahr to current year
   var bisEl=document.getElementById('bisCalendarYear');
   if(bisEl&&!bisEl.value)bisEl.value=new Date().getFullYear();
@@ -304,47 +306,89 @@ function calc(withTax){
 
   // HISTORICAL MODE: show portfolio growth using actual market returns
   if(currentMode==='historical'&&loadedHistoricalPrices.length>1){
-    var hLabels=[],hContrib=[],hGrowth=[];
+    var hLabels=[],hContrib=[],hGrowth=[],hTax=[];
     var monthlyRate=parseFloat(rateEl.value)||0;
     var initCapital=parseFloat(startEl.value)||0;
     var portfolioValue=initCapital;
     var totalDeposited=initCapital;
+    var cumHistTax=0, histFreibetragRest=freibetrag, histAllVPA=0;
 
     for(var hi=0;hi<loadedHistoricalPrices.length;hi++){
       var hp=loadedHistoricalPrices[hi];
       hLabels.push(hp.year.toString());
 
+      var balanceStart=portfolioValue;
       // Add yearly contributions
       totalDeposited+=monthlyRate*12;
+      portfolioValue+=monthlyRate*12;
 
       // Apply real market return for this year
       if(hi>0){
         var yearReturn=loadedHistoricalPrices[hi].price/loadedHistoricalPrices[hi-1].price;
-        portfolioValue=portfolioValue*yearReturn+monthlyRate*12;
-      } else {
-        portfolioValue=totalDeposited;
+        portfolioValue=(balanceStart*yearReturn)+monthlyRate*12;
+      }
+
+      var yearGain=portfolioValue-balanceStart-monthlyRate*12;
+
+      // Tax calculation (if Netto)
+      if(withTax&&hi>0){
+        if(hi>0)histFreibetragRest=freibetrag; // reset per year
+        var histYearTax=0;
+        if(etfType==='thesaurierend'){
+          var vpRoh=balanceStart*basiszins*0.7;
+          var vpAnz=Math.min(vpRoh,Math.max(0,yearGain));
+          histAllVPA+=vpAnz;
+          var vpTaxable=Math.max(0,vpAnz-histFreibetragRest);
+          histYearTax=vpTaxable*steuerSatz;
+          histFreibetragRest-=Math.min(vpAnz,histFreibetragRest);
+        } else {
+          var taxableGain=Math.max(0,yearGain-histFreibetragRest);
+          histYearTax=taxableGain*steuerSatz;
+          histFreibetragRest-=Math.min(yearGain,histFreibetragRest);
+        }
+        histYearTax=Math.max(0,histYearTax);
+        portfolioValue-=histYearTax;
+        cumHistTax+=histYearTax;
       }
 
       hContrib.push(Math.round(totalDeposited));
       hGrowth.push(Math.max(0,Math.round(portfolioValue-totalDeposited)));
+      hTax.push(Math.round(cumHistTax));
     }
 
-    // Update KPIs for historical
-    var totalVal=portfolioValue;
-    var totalGain=totalVal-totalDeposited;
-    if(kE){kE.textContent=fmt(totalVal,currency);kES.textContent='Historisch';}
+    // Verkaufsteuer bei Netto
+    var histVK=0;
+    if(withTax){
+      var histGainOnSale=portfolioValue-(totalDeposited-histAllVPA);
+      var histTaxableOnSale=Math.max(0,histGainOnSale-freibetrag);
+      histVK=Math.max(0,histTaxableOnSale*steuerSatz*0.7);
+    }
+    var histEndkapital=withTax?(portfolioValue-histVK):portfolioValue;
+    var histTotalGain=histEndkapital-totalDeposited;
+
+    // Update KPIs
+    if(kE){kE.textContent=fmt(histEndkapital,currency);kES.textContent=withTax?'Netto (nach Steuern)':'Brutto';}
     if(kEi){kEi.textContent=fmt(totalDeposited,currency);kEiS.textContent=fmt(monthlyRate,currency)+'/M × '+loadedHistoricalPrices.length+'J';}
-    if(kG){kG.textContent=fmt(totalGain,currency);kGS.textContent=(totalDeposited>0?((totalGain/totalDeposited)*100).toFixed(1):'0')+'%';}
-    if(kSt){kSt.textContent='–';kStS.textContent='historisch';}
+    if(kG){kG.textContent=fmt(histTotalGain,currency);kGS.textContent=(totalDeposited>0?((histTotalGain/totalDeposited)*100).toFixed(1):'0')+'%';}
+    if(kSt){
+      if(withTax){kSt.textContent=fmt(cumHistTax+histVK,currency);kStS.textContent='VPA + Verkauf';}
+      else{kSt.textContent='–';kStS.textContent='nur bei Netto';}
+    }
+
+    // Build chart datasets
+    var histDatasets=[
+      {label:'Einzahlungen',data:hContrib,backgroundColor:'rgba(52,152,219,0.7)',stack:'s'},
+      {label:'Wertsteigerung'+(withTax?' (nach Steuer)':''),data:hGrowth,backgroundColor:'rgba(46,204,113,0.7)',stack:'s'}
+    ];
+    if(withTax){
+      histDatasets.push({label:'Steuer (kum.)',data:hTax,backgroundColor:TAX_COLOR_DIAGRAM,type:'line',order:-1,yAxisID:'y1',fill:true,tension:0.3,borderWidth:2,pointRadius:0});
+    }
 
     chartMain=new Chart(document.getElementById('chart').getContext('2d'),{type:'bar',
-      data:{labels:hLabels,datasets:[
-        {label:'Einzahlungen',data:hContrib,backgroundColor:'rgba(52,152,219,0.7)',stack:'s'},
-        {label:'Wertsteigerung',data:hGrowth,backgroundColor:'rgba(46,204,113,0.7)',stack:'s'}
-      ]},
+      data:{labels:hLabels,datasets:histDatasets},
       options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
-        plugins:{tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+fmt(c.parsed.y,currency);}}}},
-        scales:{y:{stacked:true,beginAtZero:true},x:{stacked:true}}
+        plugins:{tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+fmt(Math.abs(c.parsed.y),currency);}}}},
+        scales:{y:{stacked:true,beginAtZero:true},y1:{display:!!withTax,position:'right',grid:{drawOnChartArea:false}},x:{stacked:true}}
       }
     });
     // Skip compare chart in historical mode
