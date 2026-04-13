@@ -5,40 +5,43 @@ function computeRatesFromPrices(p){var r=[];for(var i=1;i<p.length;i++)r.push(p[
 
 var loadedHistoricalPrices=[];// {year, price} array
 
-// Embedded historical yearly average prices (no API needed)
+// Embedded historical year-end index values in EUR (rebased)
+// Sources: MSCI factsheets, ETF provider reports
 var HISTORICAL_DATA = {
-  gold: { // GLD ETF average yearly close
-    2005:44.5,2006:58.2,2007:66.5,2008:83.5,2009:97.2,2010:122.3,2011:153.6,2012:163.1,
-    2013:130.3,2014:121.2,2015:109.3,2016:118.7,2017:121.7,2018:121.2,2019:134.9,
-    2020:168.2,2021:168.0,2022:167.4,2023:185.5,2024:213.8,2025:240.5
+  gold: { // Gold EUR/oz approximate year-end
+    2005:435,2006:480,2007:570,2008:620,2009:766,2010:1063,2011:1216,2012:1270,
+    2013:880,2014:987,2015:973,2016:1098,2017:1085,2018:1120,2019:1364,
+    2020:1559,2021:1610,2022:1706,2023:1860,2024:2530,2025:2680
   },
-  msci: { // URTH / MSCI World approximate yearly avg
-    2008:42,2009:45,2010:53,2011:52,2012:58,2013:70,2014:74,2015:74,2016:75,
-    2017:86,2018:82,2019:96,2020:99,2021:124,2022:104,2023:118,2024:137,2025:142
+  msci: { // MSCI World Net Return EUR (rebased to 100 end-2004)
+    2004:100,2005:127,2006:141,2007:137,2008:79,2009:101,2010:121,2011:112,
+    2012:130,2013:159,2014:182,2015:193,2016:211,2017:220,2018:205,2019:267,
+    2020:284,2021:372,2022:324,2023:387,2024:488,2025:505
   },
-  spy: { // S&P 500 ETF yearly avg
-    2000:139,2001:120,2002:101,2003:101,2004:113,2005:120,2006:127,2007:146,
-    2008:126,2009:94,2010:113,2011:126,2012:136,2013:159,2014:190,2015:205,
-    2016:209,2017:243,2018:274,2019:296,2020:326,2021:423,2022:404,2023:444,
-    2024:502,2025:530
+  spy: { // S&P 500 EUR (rebased to 100 end-2004)
+    2004:100,2005:104,2006:114,2007:104,2008:63,2009:83,2010:104,2011:105,
+    2012:120,2013:153,2014:188,2015:199,2016:224,2017:227,2018:213,2019:282,
+    2020:313,2021:430,2022:369,2023:426,2024:537,2025:555
   },
-  eem: { // Emerging Markets yearly avg
-    2005:26,2006:32,2007:42,2008:31,2009:31,2010:41,2011:40,2012:40,
-    2013:40,2014:41,2015:34,2016:35,2017:42,2018:42,2019:42,2020:43,
-    2021:51,2022:39,2023:39,2024:42,2025:43
+  eem: { // MSCI Emerging Markets EUR (rebased to 100 end-2004)
+    2004:100,2005:134,2006:156,2007:181,2008:80,2009:123,2010:148,2011:113,
+    2012:127,2013:119,2014:123,2015:102,2016:115,2017:136,2018:115,2019:139,
+    2020:155,2021:149,2022:123,2023:131,2024:146,2025:150
   },
-  vt: { // FTSE All-World yearly avg
-    2008:44,2009:38,2010:46,2011:47,2012:49,2013:56,2014:59,2015:59,
-    2016:60,2017:69,2018:71,2019:75,2020:78,2021:101,2022:88,2023:95,
-    2024:108,2025:113
+  vt: { // FTSE All-World EUR (rebased to 100 end-2007)
+    2007:100,2008:58,2009:76,2010:93,2011:88,2012:103,2013:126,2014:147,
+    2015:155,2016:172,2017:179,2018:167,2019:218,2020:233,2021:306,2022:267,
+    2023:312,2024:393,2025:408
   }
 };
 
 function fetchHistoricalPrices(){
   var asset=assetSelectEl.value;
-  var startYear=parseInt(startCalendarYearEl.value)||2015;
-  var bisEl=document.getElementById('bisCalendarYear');
-  var endYear=parseInt(bisEl?bisEl.value:0)||new Date().getFullYear();
+  // Read years from date inputs (historical mode) or number input (calc mode)
+  var sd=document.getElementById('startDate');
+  var bd=document.getElementById('bisDate');
+  var startYear=sd&&sd.value?parseInt(sd.value.slice(0,4)):(parseInt(startCalendarYearEl.value)||2015);
+  var endYear=bd&&bd.value?parseInt(bd.value.slice(0,4)):new Date().getFullYear();
   if(assetStartYearEl)assetStartYearEl.value=startYear;
   var prices=[];loadedHistoricalPrices=[];
 
@@ -47,11 +50,15 @@ function fetchHistoricalPrices(){
     var embeddedKey = asset; // gold, msci, spy, eem, vt
     if(HISTORICAL_DATA[embeddedKey]){
       var data=HISTORICAL_DATA[embeddedKey];
-      Object.keys(data).sort().forEach(function(y){
-        var yr=parseInt(y);
+      var allYears=Object.keys(data).map(Number).sort(function(a,b){return a-b;});
+      // Include year before startYear for calculating first year's return
+      var prevYearPrice=null;
+      allYears.forEach(function(yr){
+        if(yr===startYear-1) prevYearPrice=data[yr];
         if(yr>=startYear&&yr<=endYear){
-          prices.push(data[y]);
-          loadedHistoricalPrices.push({year:yr,price:data[y]});
+          prices.push(data[yr]);
+          loadedHistoricalPrices.push({year:yr,price:data[yr],prevPrice:prevYearPrice||data[yr]});
+          prevYearPrice=data[yr];
         }
       });
       loadedHistoricalRates=computeRatesFromPrices(prices);
@@ -154,46 +161,40 @@ function updateMode(newMode){
   if(bc)bc.classList.toggle('active-tab',newMode==='compare');
   if(bh)bh.classList.toggle('active-tab',newMode==='historical');
   if(historicalSectionEl)historicalSectionEl.style.display=newMode==='historical'?'block':'none';
-  // Swap Start-Jahr ↔ Ab Jahr label
-  var lbl=document.getElementById('startYearLabel');
+  // Swap number input ↔ date inputs
+  var startYearW=document.getElementById('startYearWrapper');
+  var startDateW=document.getElementById('startDateWrapper');
   var bisW=document.getElementById('bisJahrWrapper');
   var renditeW=document.getElementById('renditeWrapper');
-  if(lbl)lbl.textContent=newMode==='historical'?'Ab Jahr':'Start-Jahr';
-  if(bisW)bisW.style.display=newMode==='historical'?'block':'none';
-  // Hide Rendite and Laufzeit slider in historical mode
-  if(renditeW)renditeW.style.display=newMode==='historical'?'none':'block';
+  var chartCtrl=document.getElementById('chartControlsWrapper');
   var laufzeitRow=document.getElementById('laufzeitSliderRow');
+  if(startYearW)startYearW.style.display=newMode==='historical'?'none':'block';
+  if(startDateW)startDateW.style.display=newMode==='historical'?'block':'none';
+  if(bisW)bisW.style.display=newMode==='historical'?'block':'none';
+  if(renditeW)renditeW.style.display=newMode==='historical'?'none':'block';
+  if(chartCtrl)chartCtrl.style.display=newMode==='historical'?'none':'flex';
   if(laufzeitRow)laufzeitRow.style.display=newMode==='historical'?'none':'';
-  // Set default Bis Jahr to current year
-  var bisEl=document.getElementById('bisCalendarYear');
-  if(bisEl&&!bisEl.value)bisEl.value=new Date().getFullYear();
-  // In historical mode, default Ab Jahr to 2015 if empty or looks like a start year
-  if(newMode==='historical'){
-    var sv=parseInt(startCalendarYearEl.value);
-    if(!sv||sv>new Date().getFullYear())startCalendarYearEl.value=2015;
-  }
-  // Sync startCalendarYear to assetStartYear
-  if(assetStartYearEl)assetStartYearEl.value=startCalendarYearEl.value||2015;
+  // Set default Bis date to today
+  var bisEl=document.getElementById('bisDate');
+  if(bisEl&&!bisEl.value){var d=new Date();bisEl.value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+  // Sync dates to hidden year fields
+  syncDatesToYears();
   // Update badge
   var badge=document.getElementById('historicalBadge');
   if(badge&&newMode==='historical'){var s=assetSelectEl.options[assetSelectEl.selectedIndex];badge.innerHTML='Aktuell: <strong>'+(s?s.text:'')+'</strong>';}
-  if(newMode==='historical'){
-    // Show loading state
-    var kE=document.getElementById('kpiEndkapital'),kES=document.getElementById('kpiEndkapitalSub');
-    if(kE){kE.textContent='Laden...';kES.textContent='';}
-    fetchHistoricalPrices().then(function(){
-      if(loadedHistoricalPrices.length<=1){
-        if(kE){kE.textContent='–';kES.textContent='Keine Daten gefunden';}
-        // Show message on chart
-        if(chartMain)chartMain.destroy();
-        var ctx=document.getElementById('chart').getContext('2d');
-        chartMain=new Chart(ctx,{type:'bar',data:{labels:['Keine Daten'],datasets:[{data:[0],backgroundColor:'rgba(100,100,100,0.3)'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:'Keine historischen Daten verfügbar. Versuche einen anderen Ticker oder Zeitraum.',color:'var(--muted)',font:{size:13}}}}});
-      } else {
-        triggerCalc();
-      }
-    });
-  }else{loadedHistoricalRates=[];loadedHistoricalPrices=[];triggerCalc();}
+  if(newMode==='historical'){fetchHistoricalPrices().then(function(){triggerCalc();});}else{loadedHistoricalRates=[];loadedHistoricalPrices=[];triggerCalc();}
 }
+
+function syncDatesToYears(){
+  var sd=document.getElementById('startDate');
+  var bd=document.getElementById('bisDate');
+  if(sd&&sd.value){
+    var sy=parseInt(sd.value.slice(0,4));
+    if(startCalendarYearEl)startCalendarYearEl.value=sy;
+    if(assetStartYearEl)assetStartYearEl.value=sy;
+  }
+}
+
 window.updateMode=updateMode;
 
 function triggerCalc(){var a=document.querySelector('.btn-group .btn.active-calc-btn');calc(a&&a.textContent.indexOf('Netto')!==-1);}
@@ -212,12 +213,14 @@ assetSelectEl.addEventListener('change',function(){
     });
   }
 });
-// When Ab Jahr or Bis Jahr changes in historical mode, refetch
+// When dates change in historical mode, refetch
+var startDateEl=document.getElementById('startDate');
+var bisDateEl=document.getElementById('bisDate');
+if(startDateEl)startDateEl.addEventListener('change',function(){syncDatesToYears();if(currentMode==='historical')fetchHistoricalPrices().then(function(){triggerCalc();});});
+if(bisDateEl)bisDateEl.addEventListener('change',function(){if(currentMode==='historical')fetchHistoricalPrices().then(function(){triggerCalc();});});
 startCalendarYearEl.addEventListener('change',function(){
-  if(currentMode==='historical'){if(assetStartYearEl)assetStartYearEl.value=this.value;fetchHistoricalPrices().then(function(){triggerCalc();});}
+  if(currentMode!=='historical')triggerCalc();
 });
-var bisCalEl=document.getElementById('bisCalendarYear');
-if(bisCalEl)bisCalEl.addEventListener('change',function(){if(currentMode==='historical')fetchHistoricalPrices().then(function(){triggerCalc();});});
 assetToggleEls.forEach(function(cb){cb.addEventListener('change',function(){triggerCalc();});});
 chartAxisToggleEl.addEventListener('change',function(){triggerCalc();});
 
@@ -311,31 +314,37 @@ function calc(withTax){
     var initCapital=parseFloat(startEl.value)||0;
     var portfolioValue=initCapital;
     var totalDeposited=initCapital;
-    var cumHistTax=0, histFreibetragRest=freibetrag, histAllVPA=0;
+    var cumHistTax=0, histAllVPA=0;
 
     for(var hi=0;hi<loadedHistoricalPrices.length;hi++){
       var hp=loadedHistoricalPrices[hi];
       hLabels.push(hp.year.toString());
 
-      var balanceStart=portfolioValue;
-      // Add yearly contributions
-      totalDeposited+=monthlyRate*12;
-      portfolioValue+=monthlyRate*12;
+      var balanceStartOfYear=portfolioValue;
 
-      // Apply real market return for this year
-      if(hi>0){
-        var yearReturn=loadedHistoricalPrices[hi].price/loadedHistoricalPrices[hi-1].price;
-        portfolioValue=(balanceStart*yearReturn)+monthlyRate*12;
+      // Calculate annual return (use prevPrice for first year if available)
+      var prevPrice;
+      if(hi>0) prevPrice=loadedHistoricalPrices[hi-1].price;
+      else if(hp.prevPrice&&hp.prevPrice!==hp.price) prevPrice=hp.prevPrice;
+      else prevPrice=null;
+
+      if(prevPrice){
+        var annualReturn=hp.price/prevPrice;
+        var monthlyReturn=Math.pow(annualReturn, 1/12);
+        for(var m=0;m<12;m++){portfolioValue+=monthlyRate;totalDeposited+=monthlyRate;portfolioValue*=monthlyReturn;}
+      } else {
+        // No previous price data – just add contributions without growth
+        for(var m2=0;m2<12;m2++){portfolioValue+=monthlyRate;totalDeposited+=monthlyRate;}
       }
 
-      var yearGain=portfolioValue-balanceStart-monthlyRate*12;
+      var yearGain=portfolioValue-balanceStartOfYear-(monthlyRate*12);
 
       // Tax calculation (if Netto)
       if(withTax&&hi>0){
-        if(hi>0)histFreibetragRest=freibetrag; // reset per year
+        var histFreibetragRest=freibetrag;
         var histYearTax=0;
         if(etfType==='thesaurierend'){
-          var vpRoh=balanceStart*basiszins*0.7;
+          var vpRoh=balanceStartOfYear*basiszins*0.7;
           var vpAnz=Math.min(vpRoh,Math.max(0,yearGain));
           histAllVPA+=vpAnz;
           var vpTaxable=Math.max(0,vpAnz-histFreibetragRest);
@@ -344,7 +353,6 @@ function calc(withTax){
         } else {
           var taxableGain=Math.max(0,yearGain-histFreibetragRest);
           histYearTax=taxableGain*steuerSatz;
-          histFreibetragRest-=Math.min(yearGain,histFreibetragRest);
         }
         histYearTax=Math.max(0,histYearTax);
         portfolioValue-=histYearTax;
