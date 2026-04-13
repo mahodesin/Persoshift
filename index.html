@@ -135,7 +135,7 @@ function toggleTheme() {
   <div class="card slider-card">
     <div class="slider-row"><label>Startkapital (€)</label><div class="slider-group"><input id="startRange" type="range" min="0" max="100000" step="500" value="0" class="styled-range"><input type="number" id="startRangeValue" class="slider-input" value="0" min="0"></div><div class="range-labels"><span>0 €</span><span>100.000 €</span></div></div>
     <div class="slider-row"><div class="label-group"><label>Monatsrate (€)</label><button type="button" class="info-btn" data-modal-target="modalMonthlyRate">?</button></div><div class="slider-group"><input id="rateRange" type="range" min="0" max="2000" step="25" value="100" class="styled-range"><input type="number" id="rateRangeValue" class="slider-input" value="100" min="0"></div><div class="range-labels"><span>0 €</span><span>2.000 €</span></div></div>
-    <div class="slider-row"><label>Laufzeit (Jahre)</label><div class="slider-group"><input id="yearsRange" type="range" min="1" max="50" step="1" value="30" class="styled-range"><input type="number" id="yearsRangeValue" class="slider-input" value="30" min="1"></div><div class="range-labels"><span>1 Jahr</span><span>50 Jahre</span></div></div>
+    <div class="slider-row" id="laufzeitSliderRow"><label>Laufzeit (Jahre)</label><div class="slider-group"><input id="yearsRange" type="range" min="1" max="50" step="1" value="30" class="styled-range"><input type="number" id="yearsRangeValue" class="slider-input" value="30" min="1"></div><div class="range-labels"><span>1 Jahr</span><span>50 Jahre</span></div></div>
   </div>
 
   <!-- Main Chart -->
